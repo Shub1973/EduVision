@@ -1,0 +1,12 @@
+{
+  "name": "eduvision",
+  "version": "1.0.0",
+  "description": "Real-time educational image recognition with YouTube video playback",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.24.0"
+  }
+}
