@@ -202,6 +202,7 @@ const VIDEO_DB = {
   "skeleton":      { emoji:"🦴", en:[{id:"eT6RHu9RDak",title:"The Human Skeleton",ch:"CrashCourse"},{id:"kVHqe5vOq0Y",title:"Bones and Joints",ch:"TED-Ed"},{id:"9zPFnEJkZL8",title:"How Bones Work",ch:"SciShow"}], hi:[{id:"AUsTnAAL4tQ",title:"मानव कंकाल तंत्र हिंदी",ch:"Physics Wallah Hindi"},{id:"7k7nzRc4HWI",title:"हड्डियाँ और जोड़ - Class 8",ch:"Magnet Brains"},{id:"Wj_5c4gYbLQ",title:"Human Skeleton - Hindi",ch:"LearnoHub Hindi"}] },
   "solar system":  { emoji:"🪐", en:[{id:"libKVRa01L8",title:"The Solar System",ch:"Kurzgesagt"},{id:"vOHgsPCOFBc",title:"Planets 101",ch:"Nat Geo"},{id:"0rHUDWjR5gg",title:"How Big is the Solar System?",ch:"TED-Ed"}], hi:[{id:"Uv3UNnkAaRQ",title:"सौरमंडल हिंदी में",ch:"Khan Academy India"},{id:"r4LGCXM8WME",title:"सौर मंडल के ग्रह",ch:"Magnet Brains"},{id:"aPPtR5YHZEU",title:"Solar System - Hindi NCERT",ch:"LearnoHub Hindi"}] },
   "algebraic identities": { emoji:"🔢", en:[{id:"tXbeUwaD9iQ",title:"Algebraic Identities",ch:"Magnet Brains"},{id:"OmJ-4B-mS-Y",title:"Algebra Basics: What is Algebra?",ch:"Math Antics"},{id:"NybHckSEQBI",title:"Factoring & Algebraic Identities",ch:"Khan Academy"}], hi:[{id:"LDxK5l83zXo",title:"बीजगणितीय सर्वसमिकाएं - Hindi",ch:"Magnet Brains Hindi Medium"},{id:"tXbeUwaD9iQ",title:"Algebraic Identities - Magnet Brains",ch:"Magnet Brains"},{id:"LDxK5l83zXo",title:"Algebraic Identities Hindi",ch:"Magnet Brains Hindi Medium"}] },
+  "algebra":            { emoji:"🔢", en:[{id:"tXbeUwaD9iQ",title:"Algebraic Identities",ch:"Magnet Brains"},{id:"OmJ-4B-mS-Y",title:"Algebra Basics: What is Algebra?",ch:"Math Antics"},{id:"NybHckSEQBI",title:"Factoring & Algebraic Identities",ch:"Khan Academy"}], hi:[{id:"LDxK5l83zXo",title:"बीजगणितीय सर्वसमिकाएं - Hindi",ch:"Magnet Brains Hindi Medium"},{id:"tXbeUwaD9iQ",title:"Algebraic Identities - Magnet Brains",ch:"Magnet Brains"},{id:"LDxK5l83zXo",title:"Algebraic Identities Hindi",ch:"Magnet Brains Hindi Medium"}] },
   "default":       { emoji:"📚", en:[{id:"fHsa9DqmId8",title:"How to Learn Anything",ch:"TED-Ed"},{id:"J25d9aC1GZA",title:"Science of Learning",ch:"CrashCourse"},{id:"O96fE1E-rf8",title:"How Memory Works",ch:"Kurzgesagt"}], hi:[{id:"J0bkjMJlTZs",title:"पढ़ाई कैसे करें? - Tips Hindi",ch:"Physics Wallah Hindi"},{id:"K9zFNqFbJBY",title:"याददाश्त कैसे बढ़ाएं",ch:"Khan Academy India"},{id:"rG5EsYPFWac",title:"विज्ञान की दुनिया हिंदी",ch:"Magnet Brains"}] }
 };
 
@@ -342,7 +343,7 @@ function setScanning(on){
 function showResult(data){
   const concept=(data.concept||'').toLowerCase();
   let set=VIDEO_DB.default;
-  for(const key of Object.keys(VIDEO_DB)){if(concept.includes(key)||key.includes(concept)){set=VIDEO_DB[key];break;}}
+  for(const key of Object.keys(VIDEO_DB)){if(key==='default')continue; if(concept.includes(key)||key.includes(concept)||concept.replace(/\s+/g,'').includes(key.replace(/\s+/g,''))){set=VIDEO_DB[key];break;}}
   document.getElementById('concept-emoji').textContent=set.emoji||'📚';
   document.getElementById('concept-name').textContent=data.display_name||data.concept;
   document.getElementById('concept-subject').textContent=data.subject||'';
