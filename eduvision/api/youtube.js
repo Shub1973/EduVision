@@ -2,6 +2,22 @@
 // Vercel Serverless Function — YouTube Data API proxy
 // YOUTUBE_API_KEY is stored in Vercel environment variables, never in the browser.
 
+const https = require("https");
+
+// ─── Helper: make HTTPS GET request ──────────────────────────────────────────
+function httpsGet(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, (res) => {
+      let data = "";
+      res.on("data", chunk => data += chunk);
+      res.on("end", () => {
+        try { resolve({ ok: res.statusCode < 400, status: res.statusCode, json: () => JSON.parse(data) }); }
+        catch(e) { reject(e); }
+      });
+    }).on("error", reject);
+  });
+}
+
 // ─── In-memory cache to save API quota ───────────────────────────────────────
 // Caches search results for 6 hours per topic+lang combination
 const cache = new Map(); // key → { videos, cachedAt }
@@ -76,16 +92,16 @@ module.exports = async function handler(req, res) {
       key:        apiKey,
     });
 
-    const ytRes = await fetch(
+    const ytRes = await httpsGet(
       `https://www.googleapis.com/youtube/v3/search?${params}`
     );
 
     if (!ytRes.ok) {
-      const err = await ytRes.json();
+      const err = ytRes.json();
       throw new Error(err?.error?.message || "YouTube API error");
     }
 
-    const data = await ytRes.json();
+    const data = ytRes.json();
 
     if (!data.items || data.items.length === 0) {
       return res.status(404).json({ error: "No videos found for this topic." });
