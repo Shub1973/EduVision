@@ -29,7 +29,7 @@ function buildQuery(topic, lang) {
 // ─── Main handler ─────────────────────────────────────────────────────────────
 module.exports = async function handler(req, res) {
   // Log file to see all env variables available to the server (for debugging, remove in production)
-  console.log("All env keys:", Object.keys(process.env).join(", "));
+  //console.log("All env keys:", Object.keys(process.env).join(", "));
 
   // Preflight
   if (req.method === "OPTIONS") {
