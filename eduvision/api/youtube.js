@@ -68,13 +68,13 @@ module.exports = async function handler(req, res) {
       q:          query,
       type:       "video",
       maxResults: 5,
-      order:      "relevance",
+      order:      "viewCount", // most viewed first
       videoEmbeddable: "true",
       safeSearch: "strict",       // safe for students
-      //UPDATED CRITERIA - Video Duration: Medium (4-20 mins); 
-      //Updated criteria - Upload Date:  Last month
+      //UPDATED CRITERIA - Video Duration: Medium (4-20 mins)      
       videoDuration: "medium",
-      publishedAfter: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // Last month
+      //Updated criteria - Upload Date:  Last month
+      publishedAfter: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), 
       relevanceLanguage: lang === "hi" ? "hi" : "en",
       key:        apiKey,
     });
