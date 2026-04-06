@@ -351,8 +351,27 @@ async function analyzeFrame(base64) {
     if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error||'Server error');}
     const parsed=await res.json();
     if(!parsed.has_educational_content||parsed.confidence<0.45){
-      vf.classList.remove('locked','found'); badge.textContent=autoScanOn?'AUTO SCAN':'READY'; badge.className=autoScanOn?'scanning':'';
-      toast('🤔 Fun Object Not Recognized');
+  vf.classList.remove('locked','found');
+  badge.textContent=autoScanOn?'AUTO SCAN':'READY';
+  badge.className=autoScanOn?'scanning':'';
+  toast('🤔 Fun Object Not Recognized');
+  document.getElementById('concept-emoji').textContent='🎬';
+  document.getElementById('concept-name').textContent='Fun Object!';
+  document.getElementById('concept-subject').textContent='Not Recognized';
+  document.getElementById('conf-pill').textContent='—';
+  document.getElementById('concept-desc').textContent='This object was not recognized. Here is an interesting video for you!';
+  document.getElementById('topics-row').innerHTML='';
+  document.getElementById('lang-indicator').textContent=currentLang==='hi'?'हिंदी वीडियो चल रहे हैं':'ENGLISH VIDEOS';
+  document.getElementById('lang-indicator').className=currentLang==='hi'?'hi':'en';
+  document.getElementById('yt-iframe').src='https://www.youtube.com/embed/Mu1jTUjMit4?autoplay=1&rel=0&modestbranding=1';
+  document.getElementById('video-title-display').textContent='Science and Fun';
+  document.getElementById('video-channel-display').textContent='▶ Science and Fun Motivation';
+  document.getElementById('alt-row').innerHTML='';
+  document.getElementById('idle-hint').style.display='none';
+  document.getElementById('scanning-state').style.display='none';
+  document.getElementById('result-card').style.display='flex';
+  document.getElementById('result-card').style.flexDirection='column';
+}
     } else {
       const concept=(parsed.concept||'').toLowerCase();
       vf.classList.remove('locked'); vf.classList.add('found'); badge.textContent='FOUND!'; badge.className='found';
