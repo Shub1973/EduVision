@@ -372,7 +372,7 @@ async function analyzeFrame(base64) {
   document.getElementById('result-card').style.display='flex';
   document.getElementById('result-card').style.flexDirection='column';
 }
-    } else {
+     else {
       const concept=(parsed.concept||'').toLowerCase();
       vf.classList.remove('locked'); vf.classList.add('found'); badge.textContent='FOUND!'; badge.className='found';
       setTimeout(()=>{vf.classList.remove('found');badge.textContent=autoScanOn?'AUTO SCAN':'READY';badge.className=autoScanOn?'scanning':'';},1800);
