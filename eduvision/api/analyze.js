@@ -76,11 +76,11 @@ module.exports = async function handler(req, res) {
 
   const prompt = `You are an educational concept detector for a real-time learning app.
 Look at this camera frame and identify the most prominent educational concept visible.
-This could be a physical object (lever, pulley, magnet), a diagram (fraction bar, cell diagram, circuit), text on a board, or a recognisable scene.
+This could be a physical object (lever, pulley, magnet,drawing compass), a diagram (fraction bar, cell diagram, circuit), text on a board, or a recognisable scene.
 
 Respond ONLY with a valid JSON object — no markdown, no preamble:
 {
-  "concept": "lowercase concept key (e.g. lever, fractions, photosynthesis)",
+  "concept": "lowercase concept key (e.g. lever, fractions, photosynthesis, drawing compass)",
   "display_name": "Friendly name",
   "description": "2 sentence explanation for a student",
   "confidence": 0.90,
