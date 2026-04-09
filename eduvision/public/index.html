@@ -213,7 +213,7 @@ const VIDEO_DB = {
 // ══════════════════════════════════════════════
 let stream = null, facingMode = 'environment';
 let autoScanOn = false, autoInterval = null, intervalMs = 6000;
-let analyzing = false, lastConcept = '', currentVideoSet = null;
+let analyzing = false, lastConcept = '', currentVideoSet = null, currentSubject = '';
 let currentLang = localStorage.getItem('ev_lang') || 'en';
 
 // ══════════════════════════════════════════════
@@ -250,7 +250,7 @@ async function loadVideos(topic, autoplay = false) {
   document.getElementById('alt-row').innerHTML = '<div style="color:var(--muted);font-family:JetBrains Mono,monospace;font-size:0.7rem;padding:8px">Loading videos…</div>';
 
   try {
-    const res = await fetch(`/api/youtube?topic=${encodeURIComponent(topic)}&lang=${currentLang}`);
+    const res = await fetch(`/api/youtube?topic=${encodeURIComponent(topic)}&subject=${encodeURIComponent(currentSubject||'')}&lang=${currentLang}`);
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -411,6 +411,9 @@ function showResult(data){
   document.getElementById('concept-subject').textContent = data.subject || '';
   document.getElementById('conf-pill').textContent = Math.round((data.confidence||0.9)*100)+'%';
   document.getElementById('concept-desc').textContent = data.description || '';
+
+  // Store subject so loadVideos can use it for more specific YouTube search
+  currentSubject = data.subject || '';
 
   const topicsEl=document.getElementById('topics-row'); topicsEl.innerHTML='';
   (data.related_topics||[]).slice(0,4).forEach(t=>{
