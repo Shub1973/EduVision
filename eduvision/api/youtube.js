@@ -15,36 +15,13 @@ const CORS = {
 };
 
 // ─── Search query builder ─────────────────────────────────────────────────────
-// Builds the best YouTube search query for a given topic and language
-function buildQuery(topic, lang) {
-  const hindiSuffixes = "हिंदी में NCERT class explanation";
-  const englishSuffixes = "explained educational for students";
-
+// Builds the best YouTube search query for a given topic, subject and language
+function buildQuery(topic, subject, lang) {
+  const context = subject ? `${topic} ${subject}` : topic;
   if (lang === "hi") {
-    return `${topic} ${hindiSuffixes}`;
+    return `${context} हिंदी में explanation`;
   }
-  return `${topic} ${englishSuffixes}`;
-}
-
-// ─── YouTube search helper ────────────────────────────────────────────────────
-// Performs a single YouTube search with given params, returns video array or null
-async function searchYouTube(params) {
-  const ytRes = await fetch(
-    `https://www.googleapis.com/youtube/v3/search?${params}`
-  );
-  if (!ytRes.ok) {
-    const err = await ytRes.json();
-    throw new Error(err?.error?.message || "YouTube API error");
-  }
-  const data = await ytRes.json();
-  if (!data.items || data.items.length === 0) return null;
-  return data.items.map((item) => ({
-    id:      item.id.videoId,
-    title:   item.snippet.title,
-    channel: item.snippet.channelTitle,
-    thumb:   item.snippet.thumbnails?.medium?.url ||
-             `https://img.youtube.com/vi/${item.id.videoId}/mqdefault.jpg`,
-  }));
+  return `${context} explained educational for students`;
 }
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
@@ -63,14 +40,14 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { topic, lang = "en" } = req.query;
+  const { topic, subject = "", lang = "en" } = req.query;
 
   if (!topic) {
     return res.status(400).json({ error: "Missing topic parameter" });
   }
 
   // Check cache first
-  const cacheKey = `${topic.toLowerCase()}__${lang}`;
+  const cacheKey = `${topic.toLowerCase()}__${subject.toLowerCase()}__${lang}`;
   const cached = cache.get(cacheKey);
   if (cached && Date.now() - cached.cachedAt < CACHE_TTL) {
     return res.status(200).json({ videos: cached.videos, source: "cache" });
@@ -81,66 +58,47 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: "YouTube API key not configured on server." });
   }
 
-  const query = buildQuery(topic, lang);
+  const query = buildQuery(topic, subject, lang);
 
   try {
-    // ── PRIMARY SEARCH: full filters ─────────────────────────────────────────
-    const primaryParams = new URLSearchParams({
-      part:              "snippet",
-      q:                 query,
-      type:              "video",
-      maxResults:        5,
-      order:             "relevance",
-      videoEmbeddable:   "true",
-      safeSearch:        "strict",
-      videoDuration:     "medium",
+    const params = new URLSearchParams({
+      part:       "snippet",
+      q:          query,
+      type:       "video",
+      maxResults: 5,
+      order:      "relevance", // most relevant first
+      videoEmbeddable: "true",
+      safeSearch: "strict",       // safe for students
+      //UPDATED CRITERIA - Video Duration: Medium (4-20 mins)      
+      videoDuration: "medium",
+      //Updated criteria - Upload Date:  Last month
+      //publishedAfter: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), 
       relevanceLanguage: lang === "hi" ? "hi" : "en",
-      key:               apiKey,
+      key:        apiKey,
     });
 
-    console.log("Primary search for:", query);
-    let videos = await searchYouTube(primaryParams);
+    const ytRes = await fetch(
+      `https://www.googleapis.com/youtube/v3/search?${params}`
+    );
 
-    // ── FALLBACK 1: drop duration filter ─────────────────────────────────────
-    if (!videos) {
-      console.log("Primary search returned no results. Trying fallback 1 (no duration filter)...");
-      const fallback1Params = new URLSearchParams({
-        part:              "snippet",
-        q:                 query,
-        type:              "video",
-        maxResults:        5,
-        order:             "relevance",
-        videoEmbeddable:   "true",
-        safeSearch:        "strict",
-        relevanceLanguage: lang === "hi" ? "hi" : "en",
-        key:               apiKey,
-      });
-      videos = await searchYouTube(fallback1Params);
+    if (!ytRes.ok) {
+      const err = await ytRes.json();
+      throw new Error(err?.error?.message || "YouTube API error");
     }
 
-    // ── FALLBACK 2: simpler query, no language filter ─────────────────────────
-    if (!videos) {
-      console.log("Fallback 1 returned no results. Trying fallback 2 (simple query)...");
-      const fallback2Params = new URLSearchParams({
-        part:            "snippet",
-        q:               topic + " educational",
-        type:            "video",
-        maxResults:      5,
-        order:           "relevance",
-        videoEmbeddable: "true",
-        safeSearch:      "strict",
-        key:             apiKey,
-      });
-      videos = await searchYouTube(fallback2Params);
+    const data = await ytRes.json();
+
+    if (!data.items || data.items.length === 0) {
+      return res.status(404).json({ error: "No videos found for this topic." });
     }
 
-    // ── ALL SEARCHES FAILED ───────────────────────────────────────────────────
-    if (!videos) {
-      console.log("All searches returned no results for:", topic);
-      return res.status(404).json({ error: "No videos found for: " + topic });
-    }
-
-    console.log("Videos found:", videos.length);
+    // Map to simple video objects
+    const videos = data.items.map((item) => ({
+      id:      item.id.videoId,
+      title:   item.snippet.title,
+      channel: item.snippet.channelTitle,
+      thumb:   item.snippet.thumbnails?.medium?.url || `https://img.youtube.com/vi/${item.id.videoId}/mqdefault.jpg`,
+    }));
 
     // Store in cache
     cache.set(cacheKey, { videos, cachedAt: Date.now() });
