@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <title>EduVision Live</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Bebas+Neue&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Bebas+Neue&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
 :root {
   --bg: #050508; --surface: #0f0f15; --surface2: #181820;
@@ -14,6 +14,8 @@
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 html, body { width: 100%; height: 100%; background: var(--bg); color: var(--text); font-family: 'Space Grotesk', sans-serif; overflow: hidden; }
+body.lang-hi { font-family: 'Noto Sans Devanagari', 'Space Grotesk', sans-serif; }
+body.lang-hi .toggle-label, body.lang-hi .scanning-text, body.lang-hi .idle-text, body.lang-hi .alt-row-label { font-family: 'Noto Sans Devanagari', sans-serif; letter-spacing: 0; }
 body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px); pointer-events: none; }
 #app { display: flex; flex-direction: column; width: 100%; height: 100%; position: relative; }
 #camera-section { position: relative; flex-shrink: 0; width: 100%; background: #000; overflow: hidden; }
@@ -209,8 +211,63 @@ const VIDEO_DB = {
 };
 
 // ══════════════════════════════════════════════
-// STATE
+// TRANSLATIONS
 // ══════════════════════════════════════════════
+const T = {
+  en: {
+    ready:          'READY',
+    autoScan:       'AUTO SCAN',
+    scanning:       'SCANNING…',
+    found:          'FOUND!',
+    autoScanLabel:  'Auto Scan',
+    snapBtn:        '📸 Snap',
+    idleText:       'Point camera at\nan educational object\ntap Snap or enable Auto Scan',
+    analyzingText:  'Analyzing with AI…',
+    videoLabel:     'Now Playing',
+    altLabel:       'More on this topic',
+    searchingYT:    'Searching YouTube…',
+    rateLimitMsg:   '⏱ Rate limit — slow down',
+    noContent:      '🤔 Fun Object Not Recognized',
+    sameConcept:    '📌 Same concept — video still playing',
+    autoOn:         '🔄 Auto scan on',
+    autoOff:        '⏸ Auto scan off',
+    frontCam:       'Front camera',
+    rearCam:        'Rear camera',
+    funObject:      'Fun Object!',
+    notRecognized:  'Not Recognized',
+    funDesc:        'This object was not recognized. Here is an interesting video for you!',
+    loadingVideos:  'Loading videos…',
+    noVideos:       'No videos found',
+  },
+  hi: {
+    ready:          'तैयार',
+    autoScan:       'ऑटो स्कैन',
+    scanning:       'स्कैन हो रहा है…',
+    found:          'मिल गया!',
+    autoScanLabel:  'ऑटो स्कैन',
+    snapBtn:        '📸 स्नैप',
+    idleText:       'कैमरा किसी शैक्षिक\nवस्तु पर लगाएं\nस्नैप करें या ऑटो स्कैन चालू करें',
+    analyzingText:  'AI से विश्लेषण हो रहा है…',
+    videoLabel:     'अभी चल रहा है',
+    altLabel:       'इस विषय पर और वीडियो',
+    searchingYT:    'YouTube पर खोज रहे हैं…',
+    rateLimitMsg:   '⏱ धीरे करें — सीमा पार हो गई',
+    noContent:      '🤔 वस्तु पहचानी नहीं गई',
+    sameConcept:    '📌 वही विषय — वीडियो चल रहा है',
+    autoOn:         '🔄 ऑटो स्कैन चालू',
+    autoOff:        '⏸ ऑटो स्कैन बंद',
+    frontCam:       'फ्रंट कैमरा',
+    rearCam:        'रियर कैमरा',
+    funObject:      'मज़ेदार वस्तु!',
+    notRecognized:  'पहचाना नहीं गया',
+    funDesc:        'यह वस्तु पहचानी नहीं गई। आपके लिए एक रोचक वीडियो!',
+    loadingVideos:  'वीडियो लोड हो रहे हैं…',
+    noVideos:       'कोई वीडियो नहीं मिला',
+  }
+};
+
+// Helper to get translation
+function t(key) { return T[currentLang][key] || T['en'][key]; }
 let stream = null, facingMode = 'environment';
 let autoScanOn = false, autoInterval = null, intervalMs = 6000;
 let analyzing = false, lastConcept = '', currentVideoSet = null, currentSubject = '';
@@ -226,10 +283,44 @@ function setLang(lang) {
   const btnHi = document.getElementById('btn-hi');
   btnEn.className = 'lang-btn' + (lang === 'en' ? ' active-en' : '');
   btnHi.className = 'lang-btn' + (lang === 'hi' ? ' active-hi' : '');
+
+  // Apply Hindi font to body
+  document.body.classList.toggle('lang-hi', lang === 'hi');
+
+  // Update all UI text
+  applyTranslations();
   updateLangIndicator();
+
   if (currentVideoSet && lastConcept) {
     loadVideos(currentVideoSet, true);
     toast(lang === 'hi' ? '🇮🇳 हिंदी वीडियो' : '🇬🇧 English Videos');
+  }
+}
+
+function applyTranslations() {
+  // Controls bar
+  document.querySelector('.toggle-label').textContent       = t('autoScanLabel');
+  document.getElementById('snap-btn').textContent           = t('snapBtn');
+
+  // Idle hint
+  document.querySelector('.idle-text').innerHTML            = t('idleText').replace(/\n/g, '<br/>');
+
+  // Scanning state
+  document.querySelector('.scanning-text').textContent      = t('analyzingText');
+
+  // Video section
+  document.getElementById('video-label').innerHTML          =
+    `<span style="display:inline-block;width:6px;height:6px;background:var(--danger);border-radius:50%;animation:blink 1.2s ease-in-out infinite;margin-right:8px;"></span>${t('videoLabel')}`;
+
+  // Alt section
+  document.querySelector('.alt-row-label').textContent      = t('altLabel');
+
+  // Mode badge — only update if not in a transient state
+  const badge = document.getElementById('mode-badge');
+  if (badge.textContent === T['en'].ready || badge.textContent === T['hi'].ready) {
+    badge.textContent = t('ready');
+  } else if (badge.textContent === T['en'].autoScan || badge.textContent === T['hi'].autoScan) {
+    badge.textContent = t('autoScan');
   }
 }
 
@@ -245,9 +336,9 @@ async function loadVideos(topic, autoplay = false) {
 
   // Show loading state
   document.getElementById('yt-iframe').src = '';
-  document.getElementById('video-title-display').textContent = 'Searching YouTube…';
+  document.getElementById('video-title-display').textContent = t('searchingYT');
   document.getElementById('video-channel-display').textContent = '';
-  document.getElementById('alt-row').innerHTML = '<div style="color:var(--muted);font-family:JetBrains Mono,monospace;font-size:0.7rem;padding:8px">Loading videos…</div>';
+  document.getElementById('alt-row').innerHTML = `<div style="color:var(--muted);font-family:'Noto Sans Devanagari','JetBrains Mono',monospace;font-size:0.7rem;padding:8px">${t('loadingVideos')}</div>`;
 
   try {
     const res = await fetch(`/api/youtube?topic=${encodeURIComponent(topic)}&subject=${encodeURIComponent(currentSubject||'')}&lang=${currentLang}`);
@@ -311,15 +402,15 @@ async function startCamera() {
 async function switchCamera() {
   facingMode = facingMode === 'environment' ? 'user' : 'environment';
   await startCamera();
-  toast(facingMode === 'user' ? 'Front camera' : 'Rear camera');
+  toast(facingMode === 'user' ? t('frontCam') : t('rearCam'));
 }
 
 function toggleAuto() {
   autoScanOn = !autoScanOn;
   document.getElementById('track').classList.toggle('on', autoScanOn);
   const vf = document.getElementById('viewfinder'), badge = document.getElementById('mode-badge');
-  if (autoScanOn) { vf.classList.add('active'); badge.textContent='AUTO SCAN'; badge.className='scanning'; autoInterval=setInterval(captureNow,intervalMs); toast('🔄 Auto scan on'); }
-  else { vf.classList.remove('active','locked','found'); badge.textContent='READY'; badge.className=''; clearInterval(autoInterval); autoInterval=null; toast('⏸ Auto scan off'); }
+  if (autoScanOn) { vf.classList.add('active'); badge.textContent=t('autoScan'); badge.className='scanning'; autoInterval=setInterval(captureNow,intervalMs); toast(t('autoOn')); }
+  else { vf.classList.remove('active','locked','found'); badge.textContent=t('ready'); badge.className=''; clearInterval(autoInterval); autoInterval=null; toast(t('autoOff')); }
 }
 
 function updateInterval() {
@@ -344,22 +435,22 @@ async function captureNow() {
 async function analyzeFrame(base64) {
   analyzing=true; setScanning(true);
   const vf=document.getElementById('viewfinder'), badge=document.getElementById('mode-badge');
-  vf.classList.add('locked'); badge.textContent='SCANNING…'; badge.className='scanning';
+  vf.classList.add('locked'); badge.textContent=t('scanning'); badge.className='scanning';
   try {
     const res = await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageBase64:base64,mediaType:'image/jpeg'})});
-    if(res.status===429){toast('⏱ Rate limit — slow down');return;}
+    if(res.status===429){toast(t('rateLimitMsg'));return;}
     if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error||'Server error');}
     const parsed=await res.json();
     if(!parsed.has_educational_content||parsed.confidence<0.45){
   vf.classList.remove('locked','found');
-  badge.textContent=autoScanOn?'AUTO SCAN':'READY';
+  badge.textContent=autoScanOn?t('autoScan'):t('ready');
   badge.className=autoScanOn?'scanning':'';
-  toast('🤔 Fun Object Not Recognized');
+  toast(t('noContent'));
   document.getElementById('concept-emoji').textContent='🎬';
-  document.getElementById('concept-name').textContent='Fun Object!';
-  document.getElementById('concept-subject').textContent='Not Recognized';
+  document.getElementById('concept-name').textContent=t('funObject');
+  document.getElementById('concept-subject').textContent=t('notRecognized');
   document.getElementById('conf-pill').textContent='—';
-  document.getElementById('concept-desc').textContent='This object was not recognized. Here is an interesting video for you!';
+  document.getElementById('concept-desc').textContent=t('funDesc');
   document.getElementById('topics-row').innerHTML='';
   document.getElementById('lang-indicator').textContent=currentLang==='hi'?'हिंदी वीडियो चल रहे हैं':'ENGLISH VIDEOS';
   document.getElementById('lang-indicator').className=currentLang==='hi'?'hi':'en';
@@ -374,14 +465,14 @@ async function analyzeFrame(base64) {
 }
      else {
       const concept=(parsed.concept||'').toLowerCase();
-      vf.classList.remove('locked'); vf.classList.add('found'); badge.textContent='FOUND!'; badge.className='found';
-      setTimeout(()=>{vf.classList.remove('found');badge.textContent=autoScanOn?'AUTO SCAN':'READY';badge.className=autoScanOn?'scanning':'';},1800);
+      vf.classList.remove('locked'); vf.classList.add('found'); badge.textContent=t('found'); badge.className='found';
+      setTimeout(()=>{vf.classList.remove('found');badge.textContent=autoScanOn?t('autoScan'):t('ready');badge.className=autoScanOn?'scanning':'';},1800);
       if(concept!==lastConcept){lastConcept=concept;showResult(parsed);}
-      else toast('📌 Same concept — video still playing');
+      else toast(t('sameConcept'));
     }
   } catch(err){
     toast('❌ '+err.message);
-    vf.classList.remove('locked','found'); badge.textContent=autoScanOn?'AUTO SCAN':'READY'; badge.className=autoScanOn?'scanning':'';
+    vf.classList.remove('locked','found'); badge.textContent=autoScanOn?t('autoScan'):t('ready'); badge.className=autoScanOn?'scanning':'';
   } finally { setScanning(false); analyzing=false; }
 }
 
