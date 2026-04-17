@@ -477,5 +477,16 @@ function toast(msg){
   toastTimer=setTimeout(()=>el.classList.remove('show'),3000);
 }
 </script>
+  <script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker
+        .register("/service-worker.js")
+        .then(() => console.log("[CurioX] Service Worker registered successfully."))
+        .catch((err) => console.error("[CurioX] Service Worker registration failed:", err));
+    });
+  }
+</script>
 </body>
+  
 </html>
