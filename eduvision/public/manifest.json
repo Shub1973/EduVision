@@ -2,7 +2,7 @@
   "name": "CurioX",
   "short_name": "CurioX",
   "description": "CurioX Web App",
-  "start_url": "https://bit.ly/4cm3R69",
+  "start_url": "./",
   "display": "browser",
   "background_color": "#DAA520",
   "theme_color": "#0062FF",
