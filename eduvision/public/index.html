@@ -500,26 +500,35 @@ function toast(msg){
   let deferredPrompt;
 
   window.addEventListener("beforeinstallprompt", (e) => {
-    // Prevent Chrome from showing the default mini-infobar
     e.preventDefault();
-
-    // Save the event for later
     deferredPrompt = e;
 
-    // Show the prompt automatically
-    deferredPrompt.prompt();
+    // Show the install button
+    const installBtn = document.getElementById("install-btn");
+    installBtn.style.display = "block";
 
-    // Wait for the user's response
-    deferredPrompt.userChoice.then((choiceResult) => {
-      if (choiceResult.outcome === "accepted") {
-        console.log("[CurioX] User accepted the install prompt");
-      } else {
-        console.log("[CurioX] User dismissed the install prompt");
-      }
-      deferredPrompt = null;
+    installBtn.addEventListener("click", () => {
+      installBtn.style.display = "none";
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === "accepted") {
+          console.log("[CurioX] User accepted the install prompt");
+        } else {
+          console.log("[CurioX] User dismissed the install prompt");
+        }
+        deferredPrompt = null;
+      });
     });
   });
-</script>  
+
+  // Hide the button if app is already installed
+  window.addEventListener("appinstalled", () => {
+    const installBtn = document.getElementById("install-btn");
+    installBtn.style.display = "none";
+    deferredPrompt = null;
+    console.log("[CurioX] App installed successfully!");
+  });
+</script>
 </body>
   
 </html>
