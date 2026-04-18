@@ -3,7 +3,7 @@
   "short_name": "CurioX",
   "description": "CurioX Web App",
   "start_url": "./",
-  "display": "browser",
+  "display": "standalone",
   "background_color": "#DAA520",
   "theme_color": "#0062FF",
   "orientation": "any",
@@ -34,8 +34,8 @@
       "type": "image/png"
     },
     {
-      "src": "/icons/icon-192x192.png",
-      "sizes": "192x192",
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
       "type": "image/png",
       "purpose": "any maskable"
     },
