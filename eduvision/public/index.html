@@ -487,6 +487,30 @@ function toast(msg){
     });
   }
 </script>
+<script>
+  let deferredPrompt;
+
+  window.addEventListener("beforeinstallprompt", (e) => {
+    // Prevent Chrome from showing the default mini-infobar
+    e.preventDefault();
+
+    // Save the event for later
+    deferredPrompt = e;
+
+    // Show the prompt automatically
+    deferredPrompt.prompt();
+
+    // Wait for the user's response
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === "accepted") {
+        console.log("[CurioX] User accepted the install prompt");
+      } else {
+        console.log("[CurioX] User dismissed the install prompt");
+      }
+      deferredPrompt = null;
+    });
+  });
+</script>  
 </body>
   
 </html>
