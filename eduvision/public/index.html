@@ -347,31 +347,49 @@ function setLang(lang) {
 }
 
 function applyUITranslations() {
+  // Set lang attribute FIRST so :lang(hi) CSS activates immediately
+  document.documentElement.lang = currentLang === 'hi' ? 'hi' : 'en';
+
+  // Safe setter helpers — never crash on missing elements
+  function setText(id, key) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = _t(key);
+  }
+  function setHtml(id, key) {
+    var el = document.getElementById(id);
+    if (el) el.innerHTML = _t(key).replace(/\n/g, '<br/>');
+  }
+  function setTextQ(selector, key) {
+    var el = document.querySelector(selector);
+    if (el) el.textContent = _t(key);
+  }
+  function setHtmlQ(selector, key) {
+    var el = document.querySelector(selector);
+    if (el) el.innerHTML = _t(key).replace(/\n/g, '<br/>');
+  }
+
   // Controls bar
-  document.getElementById('snap-btn').textContent        = _t('snapBtn');
-  document.querySelector('.toggle-label').textContent    = _t('autoScanLabel');
+  setText('snap-btn',       'snapBtn');
+  setTextQ('.toggle-label', 'autoScanLabel');
   // Idle hint
-  document.querySelector('.idle-text').innerHTML         = _t('idleText').replace(/\n/g, '<br/>');
+  setHtmlQ('.idle-text',    'idleText');
   // Scanning state
-  document.querySelector('.scanning-text').textContent   = _t('scanningText');
+  setTextQ('.scanning-text','scanningText');
   // Result card labels
-  document.getElementById('video-label').textContent     = _t('videoLabel');
-  document.querySelector('.alt-row-label').textContent   = _t('altRowLabel');
+  setText('video-label',    'videoLabel');
+  setTextQ('.alt-row-label','altRowLabel');
   // Camera off overlay
-  document.querySelector('.cam-off-label').textContent   = _t('camOffLabel');
-  document.getElementById('scan-again-btn').textContent  = _t('scanAgainBtn');
+  setTextQ('.cam-off-label','camOffLabel');
+  setText('scan-again-btn', 'scanAgainBtn');
   // Camera error
-  document.querySelector('#cam-error p').innerHTML       = _t('camErrorMsg').replace(/\n/g, '<br/>');
-  // Install button (only text node, preserve inline style)
-  const installBtn = document.getElementById('install-btn');
-  if (installBtn) installBtn.textContent = _t('installBtn');
-  // Mode badge — only update if currently showing READY state
-  const badge = document.getElementById('mode-badge');
-  if (!badge.classList.contains('scanning') && !badge.classList.contains('found')) {
+  setHtmlQ('#cam-error p',  'camErrorMsg');
+  // Install button
+  setText('install-btn',    'installBtn');
+  // Mode badge — only update if not mid-scan
+  var badge = document.getElementById('mode-badge');
+  if (badge && !badge.classList.contains('scanning') && !badge.classList.contains('found')) {
     badge.textContent = _t('modeBadgeReady');
   }
-  // html lang attribute
-  document.documentElement.lang = currentLang === 'hi' ? 'hi' : 'en';
 }
 
 function updateLangIndicator() {
