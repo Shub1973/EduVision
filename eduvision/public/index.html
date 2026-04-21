@@ -484,7 +484,7 @@ function stopCamera() {
 }
 
 async function resumeCamera() {
-  lastConcept = '';   // allow re-detection of the same object after resuming
+  lastConcept = '';   // allow re-detection of the same object after resuming (also clears __not_recognized__)
   document.getElementById('idle-hint').style.display = 'flex';
   document.getElementById('result-card').style.display = 'none';
   document.getElementById('yt-iframe').src = ''; // stop video playback
@@ -557,6 +557,8 @@ async function analyzeFrame(base64) {
   document.getElementById('alt-row').innerHTML='';
   //iframe src set LAST, after card is visible and has real dimensions
   document.getElementById('yt-iframe').src='https://www.youtube.com/embed/Mu1jTUjMit4?autoplay=1&rel=0&modestbranding=1';
+  // ✅ FIX: set lastConcept so setScanning(false) in finally block does NOT hide the result-card
+  lastConcept = '__not_recognized__';
   stopCamera();
 } else {
       const concept=(parsed.concept||'').toLowerCase();
