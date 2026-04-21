@@ -538,6 +538,12 @@ async function analyzeFrame(base64) {
   badge.textContent=autoScanOn?_t('modeBadgeAuto'):_t('modeBadgeReady');
   badge.className=autoScanOn?'scanning':'';
   toast(_t('toastNotRecognized'));
+  //Show the CARD first so layout is established before loading YouTube video (which can cause re-layout and CLS)
+  document.getElementById('idle-hint').style.display='none';
+  document.getElementById('scanning-state').style.display='none';
+  document.getElementById('result-card').style.display='flex';
+  document.getElementById('result-card').style.flexDirection='column';
+  //Set iFrame src(parent has real width)
   document.getElementById('concept-emoji').textContent='🎬';
   document.getElementById('concept-name').textContent=_t('notRecognizedName');
   document.getElementById('concept-subject').textContent=_t('notRecognizedSubj');
@@ -545,15 +551,12 @@ async function analyzeFrame(base64) {
   document.getElementById('concept-desc').textContent=_t('notRecognizedDesc');
   document.getElementById('topics-row').innerHTML='';
   document.getElementById('lang-indicator').textContent=_t('langIndicator');
-  document.getElementById('lang-indicator').className=currentLang==='hi'?'hi':'en';
-  document.getElementById('yt-iframe').src='https://www.youtube.com/embed/Mu1jTUjMit4?autoplay=1&rel=0&modestbranding=1';
+  document.getElementById('lang-indicator').className=currentLang==='hi'?'hi':'en';  
   document.getElementById('video-title-display').textContent='Science and Fun';
   document.getElementById('video-channel-display').textContent='▶ Science and Fun Motivation';
   document.getElementById('alt-row').innerHTML='';
-  document.getElementById('idle-hint').style.display='none';
-  document.getElementById('scanning-state').style.display='none';
-  document.getElementById('result-card').style.display='flex';
-  document.getElementById('result-card').style.flexDirection='column';
+  //iframe src set LAST, after card is visible and has real dimensions
+  document.getElementById('yt-iframe').src='https://www.youtube.com/embed/Mu1jTUjMit4?autoplay=1&rel=0&modestbranding=1';
   stopCamera();
 } else {
       const concept=(parsed.concept||'').toLowerCase();
