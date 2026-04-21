@@ -93,7 +93,7 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
 :lang(hi) #video-label { font-family: 'Space Grotesk', sans-serif; text-transform: none; letter-spacing: 0; }
 #video-label::before { content: ''; width: 6px; height: 6px; background: var(--danger); border-radius: 50%; animation: blink 1.2s ease-in-out infinite; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-#yt-wrap { border-radius: 12px; overflow: hidden; position: relative; padding-bottom: 56.25%; background: #000; border: 1px solid var(--border); margin-bottom: 10px; }
+#yt-wrap { border-radius: 12px; overflow: hidden; position: relative; aspect-ratio: 16/9; width: 100%; background: #000; border: 1px solid var(--border); margin-bottom: 10px; }
 #yt-wrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
 #video-title-display { font-weight: 600; font-size: 0.85rem; color: var(--text); margin-bottom: 2px; }
 #video-channel-display { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--muted); }
