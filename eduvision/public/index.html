@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<title>EduVision Live</title>
+<title>CurioX Live</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Bebas+Neue&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/png" href="/icons/icon-192x192.png">
@@ -35,12 +35,28 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
 #viewfinder.found  .vf-corner { border-color: var(--accent2); box-shadow: 0 0 16px var(--accent2); }
 #status-bar { position: absolute; top: 0; left: 0; right: 0; padding: 14px 16px 10px; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent); z-index: 10; gap: 8px; }
 .logo-mark { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; letter-spacing: 0.06em; color: var(--accent); text-shadow: 0 0 20px rgba(0,245,160,0.4); flex-shrink: 0; }
-#mode-badge { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; letter-spacing: 0.15em; text-transform: uppercase; padding: 4px 10px; border-radius: 100px; border: 1px solid var(--accent); color: var(--accent); background: rgba(0,245,160,0.08); transition: all 0.3s; }
-:lang(hi) #mode-badge { font-family: 'Space Grotesk', sans-serif; text-transform: none; letter-spacing: 0; }
-#mode-badge.scanning { border-color: var(--warn); color: var(--warn); background: rgba(255,165,2,0.1); }
-#mode-badge.found { border-color: var(--accent2); color: var(--accent2); background: rgba(0,200,245,0.1); }
-
-/* ── LANGUAGE TOGGLE ── */
+/* ── GAMIFICATION ── */
+#gam-strip { display:flex; align-items:center; gap:10px; padding:8px 16px; background:var(--surface); border-bottom:1px solid var(--border); flex-shrink:0; }
+#level-badge { font-family:'JetBrains Mono',monospace; font-size:0.62rem; letter-spacing:0.1em; text-transform:uppercase; padding:3px 10px; border-radius:100px; background:linear-gradient(135deg,rgba(0,245,160,0.15),rgba(0,200,245,0.15)); border:1px solid rgba(0,245,160,0.3); color:var(--accent); flex-shrink:0; white-space:nowrap; }
+#xp-wrap { flex:1; display:flex; flex-direction:column; gap:3px; min-width:0; }
+#xp-label { font-family:'JetBrains Mono',monospace; font-size:0.58rem; color:var(--muted); letter-spacing:0.06em; display:flex; justify-content:space-between; }
+#xp-bar-bg { height:5px; background:var(--surface2); border-radius:100px; overflow:hidden; border:1px solid var(--border); }
+#xp-bar-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:100px; transition:width 0.6s cubic-bezier(.4,0,.2,1); }
+#streak-badge { display:flex; align-items:center; gap:4px; font-family:'JetBrains Mono',monospace; font-size:0.62rem; color:var(--warn); flex-shrink:0; white-space:nowrap; }
+#disco-badge { display:flex; align-items:center; gap:4px; font-family:'JetBrains Mono',monospace; font-size:0.62rem; color:var(--accent2); flex-shrink:0; white-space:nowrap; }
+/* XP pop animation */
+@keyframes xpPop { 0%{transform:scale(1)} 40%{transform:scale(1.35)} 100%{transform:scale(1)} }
+.xp-pop { animation: xpPop 0.45s ease; }
+/* Level-up toast overlay */
+#levelup-toast { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.7); background:linear-gradient(135deg,var(--surface),var(--surface2)); border:2px solid var(--accent); border-radius:20px; padding:24px 32px; text-align:center; z-index:9995; opacity:0; pointer-events:none; transition:all 0.3s; backdrop-filter:blur(12px); }
+#levelup-toast.show { opacity:1; transform:translate(-50%,-50%) scale(1); }
+#levelup-toast .lu-icon { font-size:2.5rem; display:block; margin-bottom:8px; }
+#levelup-toast .lu-title { font-family:'Bebas Neue',sans-serif; font-size:1.6rem; color:var(--accent); letter-spacing:0.06em; }
+#levelup-toast .lu-sub { font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--muted); margin-top:4px; }
+:lang(hi) #level-badge { font-family:'Space Grotesk',sans-serif; text-transform:none; letter-spacing:0; font-size:0.75rem; }
+:lang(hi) #xp-label { font-family:'Space Grotesk',sans-serif; letter-spacing:0; font-size:0.7rem; }
+:lang(hi) #streak-badge { font-family:'Space Grotesk',sans-serif; font-size:0.75rem; }
+:lang(hi) #disco-badge  { font-family:'Space Grotesk',sans-serif; font-size:0.75rem; }
 #lang-toggle { display: flex; align-items: center; background: rgba(0,0,0,0.5); border: 1px solid var(--border); border-radius: 100px; padding: 3px; backdrop-filter: blur(8px); flex-shrink: 0; }
 .lang-btn { padding: 5px 12px; border-radius: 100px; border: none; background: transparent; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.72rem; cursor: pointer; transition: all 0.2s; color: var(--muted); }
 .lang-btn.active-en { background: var(--accent2); color: #000; }
@@ -51,27 +67,18 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
 #flash.pop { opacity: 0.35; }
 #bottom-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); min-height: 0; }
 #controls { display: flex; align-items: center; gap: 12px; padding: 14px 16px 10px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
-#auto-toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
-.toggle-track { width: 42px; height: 24px; background: var(--surface2); border-radius: 100px; border: 1.5px solid var(--border); position: relative; transition: all 0.25s; flex-shrink: 0; }
-.toggle-thumb { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; background: var(--muted); border-radius: 50%; transition: all 0.25s; }
-.toggle-track.on { background: rgba(0,245,160,0.15); border-color: var(--accent); }
-.toggle-track.on .toggle-thumb { transform: translateX(18px); background: var(--accent); }
-.toggle-label { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-:lang(hi) .toggle-label { font-family: 'Space Grotesk', sans-serif; text-transform: none; letter-spacing: 0; }
-.toggle-track.on ~ .toggle-label { color: var(--accent); }
-#interval-select { margin-left: auto; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; padding: 5px 10px; outline: none; cursor: pointer; }
-#snap-btn { padding: 8px 16px; background: var(--surface2); border: 1.5px solid var(--border); border-radius: 100px; color: var(--text); font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 0.78rem; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
+#snap-btn { margin-left: auto; padding: 8px 16px; background: var(--surface2); border: 1.5px solid var(--border); border-radius: 100px; color: var(--text); font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 0.78rem; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
 #snap-btn:hover { border-color: var(--accent2); color: var(--accent2); }
 #content-area { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 20px; }
 #idle-hint { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 24px; gap: 12px; text-align: center; color: var(--muted); min-height: 200px; }
 .idle-icon { font-size: 2.5rem; opacity: 0.4; }
 .idle-text { font-family: 'JetBrains Mono', monospace; font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.7; }
-:lang(hi) .idle-text { font-family: 'Space Grotesk', sans-serif; text-transform: none; letter-spacing: 0; }
+:lang(hi) .idle-text { font-family: 'Space Grotesk', sans-serif; text-transform: none; letter-spacing: 0; font-size: 0.88rem; line-height: 1.9; }
 #scanning-state { display: none; padding: 24px 16px; align-items: center; gap: 14px; }
 .pulse-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--warn); flex-shrink: 0; animation: pdot 1s ease-in-out infinite; }
 @keyframes pdot { 0%{box-shadow:0 0 0 0 rgba(255,165,2,.5)} 70%{box-shadow:0 0 0 10px rgba(255,165,2,0)} 100%{box-shadow:0 0 0 0 rgba(255,165,2,0)} }
 .scanning-text { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--warn); letter-spacing: 0.06em; }
-:lang(hi) .scanning-text { font-family: 'Space Grotesk', sans-serif; letter-spacing: 0; }
+:lang(hi) .scanning-text { font-family: 'Space Grotesk', sans-serif; letter-spacing: 0; font-size: 0.88rem; }
 #result-card { display: none; flex-direction: column; }
 #concept-strip { padding: 14px 16px 12px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 12px; }
 .concept-icon { width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, rgba(0,245,160,0.15), rgba(0,200,245,0.15)); border: 1px solid rgba(0,245,160,0.25); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0; }
@@ -83,14 +90,14 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
 
 /* LANG INDICATOR */
 #lang-indicator { display: flex; align-items: center; gap: 8px; padding: 8px 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; letter-spacing: 0.08em; border-bottom: 1px solid var(--border); }
-:lang(hi) #lang-indicator { font-family: 'Space Grotesk', sans-serif; letter-spacing: 0; }
+:lang(hi) #lang-indicator { font-family: 'Space Grotesk', sans-serif; letter-spacing: 0; font-size: 0.82rem; }
 #lang-indicator.hi { background: rgba(255,153,51,0.08); color: var(--hindi); border-color: rgba(255,153,51,0.2); }
 #lang-indicator.en { background: rgba(0,200,245,0.06); color: var(--accent2); border-color: rgba(0,200,245,0.15); }
 #lang-indicator::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 
 #video-section { padding: 12px 16px; }
 #video-label { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-:lang(hi) #video-label { font-family: 'Space Grotesk', sans-serif; text-transform: none; letter-spacing: 0; }
+:lang(hi) #video-label { font-family: 'Space Grotesk', sans-serif; text-transform: none; letter-spacing: 0; font-size: 0.78rem; }
 #video-label::before { content: ''; width: 6px; height: 6px; background: var(--danger); border-radius: 50%; animation: blink 1.2s ease-in-out infinite; }
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 #yt-wrap { border-radius: 12px; overflow: hidden; position: relative; aspect-ratio: 16/9; width: 100%; background: #000; border: 1px solid var(--border); margin-bottom: 10px; }
@@ -99,7 +106,7 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
 #video-channel-display { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--muted); }
 #alt-section { padding: 12px 16px 0; }
 .alt-row-label { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
-:lang(hi) .alt-row-label { font-family: 'Space Grotesk', sans-serif; text-transform: none; letter-spacing: 0; }
+:lang(hi) .alt-row-label { font-family: 'Space Grotesk', sans-serif; text-transform: none; letter-spacing: 0; font-size: 0.76rem; }
 #alt-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
 #alt-row::-webkit-scrollbar { display: none; }
 .alt-chip { flex-shrink: 0; width: 140px; border-radius: 10px; overflow: hidden; border: 1.5px solid var(--border); cursor: pointer; transition: all 0.2s; background: var(--surface2); }
@@ -118,7 +125,12 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
 #cam-off-overlay.show { display:flex; }
 #cam-off-overlay .cam-off-icon { font-size:2.8rem; opacity:0.5; }
 #cam-off-overlay .cam-off-label { font-family:'JetBrains Mono',monospace; font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); }
-:lang(hi) #cam-off-overlay .cam-off-label { font-family:'Space Grotesk',sans-serif; text-transform:none; letter-spacing:0; }
+:lang(hi) #cam-off-overlay .cam-off-label { font-family:'Space Grotesk',sans-serif; text-transform:none; letter-spacing:0; font-size:0.88rem; }
+/* Global Hindi font boost — Devanagari glyphs render smaller than Latin at same size */
+:lang(hi) .lang-btn { font-size: 0.82rem; }
+:lang(hi) #snap-btn { font-size: 0.88rem; }
+:lang(hi) #concept-desc { font-size: 0.92rem; line-height: 1.75; }
+:lang(hi) .topic-chip { font-size: 0.75rem; }
 #scan-again-btn { padding:10px 22px; background:var(--accent); color:#000; border:none; border-radius:100px; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:0.85rem; cursor:pointer; transition:all 0.2s; box-shadow:0 0 20px rgba(0,245,160,0.3); }
 #scan-again-btn:hover { transform:scale(1.04); box-shadow:0 0 28px rgba(0,245,160,0.5); }
 #cam-error p { font-size:0.82rem; color:var(--muted); line-height:1.6; }
@@ -139,8 +151,7 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
     <video id="video-feed" autoplay playsinline muted></video>
     <canvas id="canvas-hidden"></canvas>
     <div id="status-bar">
-      <div class="logo-mark">EduVision</div>
-      <div id="mode-badge"></div>
+      <div class="logo-mark">CurioX</div>
       <div id="lang-toggle">
         <button class="lang-btn active-en" id="btn-en" onclick="setLang('en')">EN</button>
         <button class="lang-btn" id="btn-hi" onclick="setLang('hi')">हिंदी</button>
@@ -163,15 +174,17 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
 
   <div id="bottom-panel">
     <div id="controls">
-      <div id="auto-toggle" onclick="toggleAuto()">
-        <div class="toggle-track" id="track"><div class="toggle-thumb"></div></div>
-        <span class="toggle-label"></span>
-      </div>
-      <select id="interval-select" onchange="updateInterval()">
-        <option value="4000">4s</option><option value="6000" selected>6s</option>
-        <option value="10000">10s</option><option value="15000">15s</option>
-      </select>
       <button id="snap-btn" onclick="captureNow()"></button>
+    </div>
+    <!-- GAMIFICATION STRIP -->
+    <div id="gam-strip">
+      <div id="level-badge">LVL 1</div>
+      <div id="xp-wrap">
+        <div id="xp-label"><span id="xp-level-name">Rookie</span><span id="xp-counter">0 / 100 XP</span></div>
+        <div id="xp-bar-bg"><div id="xp-bar-fill" style="width:0%"></div></div>
+      </div>
+      <div id="streak-badge">🔥 0</div>
+      <div id="disco-badge">🔭 0</div>
     </div>
     <div id="content-area">
       <div id="idle-hint">
@@ -206,6 +219,7 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
   </div>
 </div>
 <div id="toast"></div>
+<div id="levelup-toast"><span class="lu-icon">🏆</span><div class="lu-title" id="lu-title"></div><div class="lu-sub" id="lu-sub"></div></div>
 
 <script>
 // ══════════════════════════════════════════════
@@ -370,7 +384,6 @@ function applyUITranslations() {
 
   // Controls bar
   setText('snap-btn',       'snapBtn');
-  setTextQ('.toggle-label', 'autoScanLabel');
   // Idle hint
   setHtmlQ('.idle-text',    'idleText');
   // Scanning state
@@ -385,11 +398,6 @@ function applyUITranslations() {
   setHtmlQ('#cam-error p',  'camErrorMsg');
   // Install button
   setText('install-btn',    'installBtn');
-  // Mode badge — only update if not mid-scan
-  var badge = document.getElementById('mode-badge');
-  if (badge && !badge.classList.contains('scanning') && !badge.classList.contains('found')) {
-    badge.textContent = _t('modeBadgeReady');
-  }
 }
 
 function updateLangIndicator() {
@@ -475,10 +483,9 @@ function stopCamera() {
   // stop auto-scan while camera is off
   if (autoScanOn) {
     autoScanOn = false;
-    document.getElementById('track').classList.remove('on');
     clearInterval(autoInterval); autoInterval = null;
-    const vf = document.getElementById('viewfinder'), badge = document.getElementById('mode-badge');
-    vf.classList.remove('active','locked','found'); badge.textContent=_t('modeBadgeReady'); badge.className='';
+    const vf = document.getElementById('viewfinder');
+    vf.classList.remove('active','locked','found');
   }
   document.getElementById('cam-off-overlay').classList.add('show');
 }
@@ -499,15 +506,9 @@ async function switchCamera() {
 
 function toggleAuto() {
   autoScanOn = !autoScanOn;
-  document.getElementById('track').classList.toggle('on', autoScanOn);
-  const vf = document.getElementById('viewfinder'), badge = document.getElementById('mode-badge');
-  if (autoScanOn) { vf.classList.add('active'); badge.textContent=_t('modeBadgeAuto'); badge.className='scanning'; autoInterval=setInterval(captureNow,intervalMs); toast(_t('toastAutoOn')); }
-  else { vf.classList.remove('active','locked','found'); badge.textContent=_t('modeBadgeReady'); badge.className=''; clearInterval(autoInterval); autoInterval=null; toast(_t('toastAutoOff')); }
-}
-
-function updateInterval() {
-  intervalMs = parseInt(document.getElementById('interval-select').value);
-  if (autoScanOn) { clearInterval(autoInterval); autoInterval=setInterval(captureNow,intervalMs); }
+  const vf = document.getElementById('viewfinder');
+  if (autoScanOn) { vf.classList.add('active'); autoInterval=setInterval(captureNow,intervalMs); toast(_t('toastAutoOn')); }
+  else { vf.classList.remove('active','locked','found'); clearInterval(autoInterval); autoInterval=null; toast(_t('toastAutoOff')); }
 }
 
 async function captureNow() {
@@ -526,8 +527,8 @@ async function captureNow() {
 
 async function analyzeFrame(base64) {
   analyzing=true; setScanning(true);
-  const vf=document.getElementById('viewfinder'), badge=document.getElementById('mode-badge');
-  vf.classList.add('locked'); badge.textContent=_t('modeBadgeScanning'); badge.className='scanning';
+  const vf=document.getElementById('viewfinder');
+  vf.classList.add('locked');
   try {
     const res = await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageBase64:base64,mediaType:'image/jpeg'})});
     if(res.status===429){toast(_t('toastRateLimit'));return;}
@@ -535,8 +536,6 @@ async function analyzeFrame(base64) {
     const parsed=await res.json();
     if(!parsed.has_educational_content||parsed.confidence<0.45){
   vf.classList.remove('locked','found');
-  badge.textContent=autoScanOn?_t('modeBadgeAuto'):_t('modeBadgeReady');
-  badge.className=autoScanOn?'scanning':'';
   toast(_t('toastNotRecognized'));
   //Show the CARD first so layout is established before loading YouTube video (which can cause re-layout and CLS)
   document.getElementById('idle-hint').style.display='none';
@@ -562,15 +561,15 @@ async function analyzeFrame(base64) {
   stopCamera();
 } else {
       const concept=(parsed.concept||'').toLowerCase();
-      vf.classList.remove('locked'); vf.classList.add('found'); badge.textContent=_t('modeBadgeFound'); badge.className='found';
-      setTimeout(()=>{vf.classList.remove('found');badge.textContent=_t('modeBadgeReady');badge.className='';},1800);
+      vf.classList.remove('locked'); vf.classList.add('found');
+      setTimeout(()=>{vf.classList.remove('found');},1800);
       if(concept!==lastConcept){lastConcept=concept;showResult(parsed);}
       else toast(_t('toastSameConcept'));
       stopCamera();
     }
   } catch(err){
     toast('❌ '+err.message);
-    vf.classList.remove('locked','found'); badge.textContent=autoScanOn?_t('modeBadgeAuto'):_t('modeBadgeReady'); badge.className=autoScanOn?'scanning':'';
+    vf.classList.remove('locked','found');
   } finally { setScanning(false); analyzing=false; }
 }
 
@@ -620,6 +619,128 @@ function showResult(data){
   document.getElementById('result-card').style.flexDirection='column';
   toast(_t('toastDetected', {name: displayName}));
 }
+
+// ══════════════════════════════════════════════════════════════
+// PHASE 1 GAMIFICATION — XP, Levels, Daily Streak, Discovery
+// All data stored in localStorage. Zero server cost.
+// ══════════════════════════════════════════════════════════════
+const LEVELS = [
+  { name:'Rookie',       nameHi:'नौसिखिया',    xp:0   },
+  { name:'Explorer',     nameHi:'खोजकर्ता',    xp:100 },
+  { name:'Investigator', nameHi:'जासूस',        xp:250 },
+  { name:'Scientist',    nameHi:'वैज्ञानिक',   xp:500 },
+  { name:'Scholar',      nameHi:'विद्वान',      xp:850 },
+  { name:'Genius',       nameHi:'प्रतिभाशाली', xp:1300},
+  { name:'Einstein',     nameHi:'आइंस्टीन',    xp:2000},
+];
+
+function gamLoad() {
+  return {
+    xp:          parseInt(localStorage.getItem('cx_xp')  || '0'),
+    discoveries: JSON.parse(localStorage.getItem('cx_disc') || '[]'),
+    streak:      parseInt(localStorage.getItem('cx_streak') || '0'),
+    lastDate:    localStorage.getItem('cx_lastDate') || '',
+  };
+}
+
+function gamSave(g) {
+  localStorage.setItem('cx_xp',     g.xp);
+  localStorage.setItem('cx_disc',   JSON.stringify(g.discoveries));
+  localStorage.setItem('cx_streak', g.streak);
+  localStorage.setItem('cx_lastDate', g.lastDate);
+}
+
+function getLevelIndex(xp) {
+  let idx = 0;
+  for (let i = 0; i < LEVELS.length; i++) { if (xp >= LEVELS[i].xp) idx = i; }
+  return idx;
+}
+
+function gamRender() {
+  const g = gamLoad();
+  const lvlIdx  = getLevelIndex(g.xp);
+  const lvl     = LEVELS[lvlIdx];
+  const nextLvl = LEVELS[lvlIdx + 1];
+  const xpInLevel  = g.xp - lvl.xp;
+  const xpNeeded   = nextLvl ? nextLvl.xp - lvl.xp : 1;
+  const pct        = nextLvl ? Math.min(100, Math.round(xpInLevel / xpNeeded * 100)) : 100;
+  const levelName  = currentLang === 'hi' ? lvl.nameHi : lvl.name;
+
+  document.getElementById('level-badge').textContent   = (currentLang === 'hi' ? 'स्तर ' : 'LVL ') + (lvlIdx + 1);
+  document.getElementById('xp-level-name').textContent = levelName;
+  document.getElementById('xp-counter').textContent    = nextLvl
+    ? g.xp + ' / ' + nextLvl.xp + ' XP'
+    : (currentLang === 'hi' ? 'अधिकतम स्तर!' : 'MAX LEVEL!');
+  document.getElementById('xp-bar-fill').style.width   = pct + '%';
+  document.getElementById('streak-badge').textContent  = '🔥 ' + g.streak;
+  document.getElementById('disco-badge').textContent   = '🔭 ' + g.discoveries.length;
+}
+
+function gamUpdateStreak() {
+  const g = gamLoad();
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  if (g.lastDate === today) return; // already scanned today
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  g.streak    = (g.lastDate === yesterday) ? g.streak + 1 : 1;
+  g.lastDate  = today;
+  gamSave(g);
+  if (g.streak > 1) toast('🔥 ' + g.streak + (currentLang === 'hi' ? ' दिन की streak!' : '-day streak!'));
+}
+
+function gamAwardXP(concept, confidence) {
+  const g = gamLoad();
+  const oldLvlIdx = getLevelIndex(g.xp);
+
+  // Base XP: 20. Bonus for high confidence scan quality.
+  let xpGain = 20;
+  if (confidence >= 0.9)      xpGain = 50;
+  else if (confidence >= 0.75) xpGain = 35;
+
+  // Discovery bonus: +30 XP for first-ever scan of this concept
+  const isNew = !g.discoveries.includes(concept);
+  if (isNew) {
+    g.discoveries.push(concept);
+    xpGain += 30;
+    toast('🔭 ' + (currentLang === 'hi' ? 'नई खोज! +' : 'New discovery! +') + xpGain + ' XP');
+  }
+
+  g.xp += xpGain;
+  gamSave(g);
+
+  // Animate XP bar
+  const fill = document.getElementById('xp-bar-fill');
+  fill.classList.remove('xp-pop');
+  void fill.offsetWidth; // reflow to restart animation
+  fill.classList.add('xp-pop');
+
+  // Check level-up
+  const newLvlIdx = getLevelIndex(g.xp);
+  if (newLvlIdx > oldLvlIdx) {
+    const newLvl = LEVELS[newLvlIdx];
+    const lvlName = currentLang === 'hi' ? newLvl.nameHi : newLvl.name;
+    document.getElementById('lu-title').textContent = currentLang === 'hi' ? 'नया स्तर!' : 'LEVEL UP!';
+    document.getElementById('lu-sub').textContent   = (currentLang === 'hi' ? 'अब आप हैं: ' : 'You are now: ') + lvlName;
+    const lt = document.getElementById('levelup-toast');
+    lt.classList.add('show');
+    setTimeout(() => lt.classList.remove('show'), 2800);
+  }
+
+  gamRender();
+}
+
+// Hook into showResult — called on every successful detection
+const _origShowResult = showResult;
+showResult = function(data) {
+  _origShowResult(data);
+  gamUpdateStreak();
+  gamAwardXP(
+    (data.concept || data.display_name || '').toLowerCase(),
+    data.confidence || 0.7
+  );
+};
+
+// Init gamification on load
+window.addEventListener('DOMContentLoaded', () => { gamRender(); });
 
 let toastTimer;
 function toast(msg){
