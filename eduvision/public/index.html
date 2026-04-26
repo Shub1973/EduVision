@@ -364,19 +364,18 @@ function setLang(lang) {
   // If result card is visible, update its dynamic content in new language too
   if (lastConcept) {
     if (lastConcept === '__not_recognized__') {
-      // Re-render the not-recognized card text in new language
       document.getElementById('concept-name').textContent    = _t('notRecognizedName');
       document.getElementById('concept-subject').textContent = _t('notRecognizedSubj');
       document.getElementById('concept-desc').textContent    = _t('notRecognizedDesc');
       document.getElementById('lang-indicator').textContent  = _t('langIndicator');
       document.getElementById('lang-indicator').className    = lang === 'hi' ? 'hi' : 'en';
-      // Hardcoded fallback video stays — no language variant needed
     } else if (currentVideoSet) {
-      // Re-fetch YouTube videos in the new language
       loadVideos(currentVideoSet, false);
       toast(lang === 'hi' ? _t('toastHindi') : _t('toastEnglish'));
     }
   }
+  // Re-render gamification strip in new language
+  gamRender();
 }
 
 function applyUITranslations() {
@@ -752,14 +751,7 @@ showResult = function(data) {
   );
 };
 
-// Re-render gamification strip when language changes
-const _origSetLang = setLang;
-setLang = function(lang) {
-  _origSetLang(lang);
-  gamRender();
-};
-
-// Init on load
+// Init on load — gamRender is now called inside setLang so no separate listener needed
 window.addEventListener('DOMContentLoaded', () => { gamRender(); });
 
 let toastTimer;
