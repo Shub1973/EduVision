@@ -60,7 +60,7 @@ module.exports = async function handler(req, res) {
   }
 
   // Validate request body
-  const { imageBase64, mediaType = "image/jpeg" } = req.body || {};
+  const { imageBase64, mediaType = "image/jpeg", lang = "en" } = req.body || {};
 
   if (!imageBase64) {
     return res.status(400).json({ error: "Missing imageBase64 field" });
@@ -74,27 +74,40 @@ module.exports = async function handler(req, res) {
   // Call Anthropic — key lives only here on the server
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+  const langInstruction = lang === "hi"
+    ? 'IMPORTANT: Return "display_name", "description", and all quiz fields in Hindi (Devanagari script). Use simple Hindi that a school student can understand. Keep "concept" in English (it is used for search).'
+    : 'Return "display_name", "description", and all quiz fields in English.';
+
   const prompt = `You are an educational concept detector for a real-time learning app.
 Look at this camera frame and identify the most prominent educational concept visible.
-This could be a physical object (lever, pulley, magnet,drawing compass), a diagram (fraction bar, cell diagram, circuit), text on a board, or a recognisable scene.
+This could be a physical object (lever, pulley, magnet, drawing compass), a diagram (fraction bar, cell diagram, circuit), text on a board, or a recognisable scene.
+
+${langInstruction}
 
 Respond ONLY with a valid JSON object — no markdown, no preamble:
 {
-  "concept": "lowercase concept key (e.g. lever, fractions, photosynthesis, drawing compass)",
-  "display_name": "Friendly name",
-  "description": "2 sentence explanation for a student",
+  "concept": "lowercase concept key in English (e.g. lever, fractions, photosynthesis, drawing compass)",
+  "display_name": "Friendly name in the requested language",
+  "description": "2 sentence explanation for a student in the requested language",
   "confidence": 0.90,
   "subject": "subject area (Physics / Biology / Mathematics / Geography etc.)",
   "related_topics": ["topic1","topic2","topic3"],
-  "has_educational_content": true
+  "has_educational_content": true,
+  "quiz_question": {
+    "question": "A simple multiple-choice question about the concept in the requested language",
+    "options": ["Option A", "Option B", "Option C"],
+    "answer_index": 0
+  }
 }
 
-If there is NO clear educational content (blank wall, random clutter, person's face), set has_educational_content to false and confidence below 0.4.`;
+The quiz_question must be simple enough for a school student aged 10-14. The answer_index is 0-based (0 = first option is correct).
+
+If there is NO clear educational content (blank wall, random clutter, person's face), set has_educational_content to false, confidence below 0.4, and quiz_question to null.`;
 
   try {
     const message = await client.messages.create({
       model:      "claude-sonnet-4-20250514",
-      max_tokens: 500,
+      max_tokens: 800,
       messages: [
         {
           role: "user",
