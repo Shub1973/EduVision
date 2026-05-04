@@ -41,7 +41,7 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-const CACHE_NAME = "curiox-cache-v11";
+//const CACHE_NAME = "curiox-cache-v11";
 
 // Fetch event — serve from cache, fallback to network
 self.addEventListener("fetch", (event) => {
