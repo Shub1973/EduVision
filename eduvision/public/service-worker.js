@@ -1,4 +1,4 @@
-const CACHE_NAME = "curiox-cache-v11";
+const CACHE_NAME = "curiox-cache-v12";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
@@ -41,15 +41,31 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+const CACHE_NAME = "curiox-cache-v11";
+
 // Fetch event — serve from cache, fallback to network
 self.addEventListener("fetch", (event) => {
+  const req = event.request;
+
+  // ── NEVER cache these — pass straight to network ──────────────────────────
+  // 1. POST requests (Cache API doesn't support them)
+  // 2. API calls (/api/*) — always need fresh responses
+  // 3. Non-http(s) schemes (chrome-extension://, etc.)
+  if (
+    req.method !== "GET" ||
+    req.url.includes("/api/") ||
+    !req.url.startsWith("http")
+  ) {
+    return; // let browser handle normally — no SW interception
+  }
+
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
+    caches.match(req).then((cachedResponse) => {
       if (cachedResponse) {
         return cachedResponse;
       }
-      return fetch(event.request).then((networkResponse) => {
-        // Cache new requests dynamically
+      return fetch(req).then((networkResponse) => {
+        // Only cache same-origin successful GET responses
         if (
           networkResponse &&
           networkResponse.status === 200 &&
@@ -57,7 +73,7 @@ self.addEventListener("fetch", (event) => {
         ) {
           const responseClone = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
+            cache.put(req, responseClone);
           });
         }
         return networkResponse;
