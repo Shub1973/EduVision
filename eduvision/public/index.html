@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Bebas+Neue&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/png" href="/icons/icon-192x192.png">
+<script src="https://www.youtube.com/iframe_api"></script>
   <style>
 :root {
   --bg: #050508; --surface: #0f0f15; --surface2: #181820;
@@ -75,25 +76,47 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
 #lang-indicator::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 
 /* ── GAMIFICATION ── */
-#gam-strip { display:flex; align-items:center; gap:10px; padding:8px 16px; background:var(--surface); border-bottom:1px solid var(--border); flex-shrink:0; }
-#level-badge { font-family:'JetBrains Mono',monospace; font-size:0.62rem; letter-spacing:0.1em; text-transform:uppercase; padding:3px 10px; border-radius:100px; background:linear-gradient(135deg,rgba(0,245,160,0.15),rgba(0,200,245,0.15)); border:1px solid rgba(0,245,160,0.3); color:var(--accent); flex-shrink:0; white-space:nowrap; }
-#xp-wrap { flex:1; display:flex; flex-direction:column; gap:3px; min-width:0; }
-#xp-label { font-family:'JetBrains Mono',monospace; font-size:0.58rem; color:var(--muted); letter-spacing:0.06em; display:flex; justify-content:space-between; }
-#xp-bar-bg { height:5px; background:var(--surface2); border-radius:100px; overflow:hidden; border:1px solid var(--border); }
-#xp-bar-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:100px; transition:width 0.6s cubic-bezier(.4,0,.2,1); }
-#streak-badge { display:flex; align-items:center; gap:4px; font-family:'JetBrains Mono',monospace; font-size:0.62rem; color:var(--warn); flex-shrink:0; white-space:nowrap; }
-#disco-badge { display:flex; align-items:center; gap:4px; font-family:'JetBrains Mono',monospace; font-size:0.62rem; color:var(--accent2); flex-shrink:0; white-space:nowrap; }
-@keyframes xpPop { 0%{transform:scale(1)} 40%{transform:scale(1.35)} 100%{transform:scale(1)} }
+#gam-strip { display:flex; align-items:center; gap:12px; padding:10px 16px; background:linear-gradient(135deg,rgba(0,245,160,0.08),rgba(0,200,245,0.08)); border-bottom:2px solid rgba(0,245,160,0.2); flex-shrink:0; }
+#level-badge { font-family:'Space Grotesk',sans-serif; font-size:0.78rem; font-weight:700; letter-spacing:0.04em; padding:5px 14px; border-radius:100px; background:linear-gradient(135deg,#00f5a0,#00c8f5); color:#000; flex-shrink:0; white-space:nowrap; box-shadow:0 0 14px rgba(0,245,160,0.45); }
+#xp-wrap { flex:1; display:flex; flex-direction:column; gap:4px; min-width:0; }
+#xp-label { font-family:'Space Grotesk',sans-serif; font-size:0.7rem; font-weight:600; color:var(--text); letter-spacing:0.02em; display:flex; justify-content:space-between; }
+#xp-bar-bg { height:8px; background:var(--surface2); border-radius:100px; overflow:hidden; border:1px solid rgba(0,245,160,0.2); }
+#xp-bar-fill { height:100%; background:linear-gradient(90deg,#00f5a0,#00c8f5); border-radius:100px; transition:width 0.6s cubic-bezier(.4,0,.2,1); box-shadow:0 0 8px rgba(0,245,160,0.5); }
+#streak-badge { display:flex; align-items:center; gap:5px; font-family:'Space Grotesk',sans-serif; font-size:0.78rem; font-weight:700; color:#fff; background:linear-gradient(135deg,#ff6b35,#ffa502); padding:5px 12px; border-radius:100px; flex-shrink:0; white-space:nowrap; box-shadow:0 0 12px rgba(255,165,2,0.4); }
+#disco-badge { display:flex; align-items:center; gap:5px; font-family:'Space Grotesk',sans-serif; font-size:0.78rem; font-weight:700; color:#000; background:linear-gradient(135deg,#00c8f5,#a855f7); padding:5px 12px; border-radius:100px; flex-shrink:0; white-space:nowrap; box-shadow:0 0 12px rgba(0,200,245,0.4); }
+@keyframes xpPop { 0%{transform:scale(1)} 40%{transform:scale(1.4)} 100%{transform:scale(1)} }
 .xp-pop { animation: xpPop 0.45s ease; }
-#levelup-toast { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.7); background:linear-gradient(135deg,var(--surface),var(--surface2)); border:2px solid var(--accent); border-radius:20px; padding:24px 32px; text-align:center; z-index:9995; opacity:0; pointer-events:none; transition:all 0.3s; backdrop-filter:blur(12px); }
+#levelup-toast { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.7); background:linear-gradient(135deg,#0f0f15,#181820); border:2px solid var(--accent); border-radius:24px; padding:28px 36px; text-align:center; z-index:9995; opacity:0; pointer-events:none; transition:all 0.35s cubic-bezier(.34,1.56,.64,1); backdrop-filter:blur(16px); box-shadow:0 0 60px rgba(0,245,160,0.3); }
 #levelup-toast.show { opacity:1; transform:translate(-50%,-50%) scale(1); }
-#levelup-toast .lu-icon { font-size:2.5rem; display:block; margin-bottom:8px; }
-#levelup-toast .lu-title { font-family:'Bebas Neue',sans-serif; font-size:1.6rem; color:var(--accent); letter-spacing:0.06em; }
-#levelup-toast .lu-sub { font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--muted); margin-top:4px; }
-:lang(hi) #level-badge { font-family:'Space Grotesk',sans-serif; text-transform:none; letter-spacing:0; font-size:0.75rem; }
-:lang(hi) #xp-label { font-family:'Space Grotesk',sans-serif; letter-spacing:0; font-size:0.7rem; }
-:lang(hi) #streak-badge { font-family:'Space Grotesk',sans-serif; font-size:0.75rem; }
-:lang(hi) #disco-badge  { font-family:'Space Grotesk',sans-serif; font-size:0.75rem; }
+#levelup-toast .lu-icon { font-size:3rem; display:block; margin-bottom:10px; }
+#levelup-toast .lu-title { font-family:'Bebas Neue',sans-serif; font-size:2rem; background:linear-gradient(90deg,#00f5a0,#00c8f5); -webkit-background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:0.08em; }
+#levelup-toast .lu-sub { font-family:'Space Grotesk',sans-serif; font-size:0.85rem; color:var(--text); margin-top:6px; font-weight:600; }
+:lang(hi) #level-badge { font-size:0.82rem; }
+:lang(hi) #xp-label { font-size:0.74rem; }
+:lang(hi) #streak-badge { font-size:0.82rem; }
+:lang(hi) #disco-badge { font-size:0.82rem; }
+
+/* ── QUIZ ── */
+#quiz-section { display:none; margin:12px 16px; border-radius:16px; background:linear-gradient(135deg,rgba(0,245,160,0.06),rgba(168,85,247,0.06)); border:1.5px solid rgba(0,245,160,0.25); overflow:hidden; }
+#quiz-section.show { display:block; }
+#quiz-header { padding:12px 16px 8px; display:flex; align-items:center; gap:8px; border-bottom:1px solid rgba(0,245,160,0.15); }
+#quiz-header .quiz-icon { font-size:1.3rem; }
+#quiz-header .quiz-title { font-family:'Space Grotesk',sans-serif; font-size:0.82rem; font-weight:700; color:var(--accent); }
+#quiz-header .quiz-xp-hint { margin-left:auto; font-family:'Space Grotesk',sans-serif; font-size:0.7rem; font-weight:600; color:var(--accent2); background:rgba(0,200,245,0.12); padding:2px 8px; border-radius:100px; border:1px solid rgba(0,200,245,0.25); }
+#quiz-question { padding:12px 16px 10px; font-family:'Space Grotesk',sans-serif; font-size:0.88rem; font-weight:600; color:var(--text); line-height:1.5; }
+:lang(hi) #quiz-question { font-size:0.94rem; line-height:1.65; }
+#quiz-options { display:flex; flex-direction:column; gap:8px; padding:0 16px 14px; }
+.quiz-opt { padding:10px 14px; border-radius:12px; background:var(--surface2); border:1.5px solid var(--border); color:var(--text); font-family:'Space Grotesk',sans-serif; font-size:0.84rem; font-weight:500; cursor:pointer; transition:all 0.2s; text-align:left; }
+:lang(hi) .quiz-opt { font-size:0.9rem; }
+.quiz-opt:hover { border-color:var(--accent2); background:rgba(0,200,245,0.08); transform:translateX(3px); }
+.quiz-opt.correct { background:linear-gradient(135deg,rgba(0,245,160,0.2),rgba(0,245,160,0.1)); border-color:var(--accent); color:var(--accent); pointer-events:none; }
+.quiz-opt.wrong { background:linear-gradient(135deg,rgba(255,71,87,0.15),rgba(255,71,87,0.08)); border-color:var(--danger); color:var(--danger); pointer-events:none; }
+.quiz-opt.disabled { opacity:0.45; pointer-events:none; }
+#quiz-feedback { padding:8px 16px 14px; font-family:'Space Grotesk',sans-serif; font-size:0.82rem; font-weight:600; display:none; }
+:lang(hi) #quiz-feedback { font-size:0.88rem; }
+#quiz-feedback.correct { color:var(--accent); display:block; }
+#quiz-feedback.wrong   { color:var(--danger); display:block; }
+#quiz-feedback.no-xp   { color:var(--muted); display:block; }
 
 /* Hindi font size boosts */
 :lang(hi) .idle-text { font-size: 0.88rem; line-height: 1.9; }
@@ -219,6 +242,17 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
         <div id="alt-section">
           <div class="alt-row-label"></div>
           <div id="alt-row"></div>
+        </div>
+        <!-- QUIZ SECTION -->
+        <div id="quiz-section">
+          <div id="quiz-header">
+            <span class="quiz-icon">🧠</span>
+            <span class="quiz-title" id="quiz-title">Quick Quiz</span>
+            <span class="quiz-xp-hint" id="quiz-xp-hint">+XP</span>
+          </div>
+          <div id="quiz-question"></div>
+          <div id="quiz-options"></div>
+          <div id="quiz-feedback"></div>
         </div>
       </div>
     </div>
@@ -450,10 +484,15 @@ async function loadVideos(topic, autoplay = false) {
       throw new Error(_t('ytNotFound'));
     }
 
-    // Play primary video
+    // Play primary video via YT Player API for end-of-video detection
     const primary = videos[0];
-    document.getElementById('yt-iframe').src =
-      `https://www.youtube.com/embed/${primary.id}?autoplay=${autoplay?1:0}&rel=0&modestbranding=1`;
+    if (typeof YT !== 'undefined' && YT.Player) {
+      initYTPlayer(primary.id, autoplay);
+    } else {
+      // Fallback if YT API not loaded yet
+      document.getElementById('yt-iframe').src =
+        `https://www.youtube.com/embed/${primary.id}?autoplay=${autoplay?1:0}&rel=0&modestbranding=1&enablejsapi=1`;
+    }
     document.getElementById('video-title-display').textContent = primary.title;
     document.getElementById('video-channel-display').textContent = '▶ ' + primary.channel;
 
@@ -464,7 +503,12 @@ async function loadVideos(topic, autoplay = false) {
       const chip = document.createElement('div'); chip.className = 'alt-chip';
       chip.innerHTML = `<img src="${v.thumb}" loading="lazy"/><div class="alt-chip-label">${v.title}</div>`;
       chip.onclick = () => {
-        document.getElementById('yt-iframe').src = `https://www.youtube.com/embed/${v.id}?autoplay=1&rel=0`;
+        hideQuiz();
+        if (typeof YT !== 'undefined' && YT.Player) {
+          initYTPlayer(v.id, true);
+        } else {
+          document.getElementById('yt-iframe').src = `https://www.youtube.com/embed/${v.id}?autoplay=1&rel=0&enablejsapi=1`;
+        }
         document.getElementById('video-title-display').textContent = v.title;
         document.getElementById('video-channel-display').textContent = '▶ ' + v.channel;
       };
@@ -508,10 +552,11 @@ function stopCamera() {
 }
 
 async function resumeCamera() {
-  lastConcept = '';   // allow re-detection of the same object after resuming (also clears __not_recognized__)
+  lastConcept = '';
+  hideQuiz();
   document.getElementById('idle-hint').style.display = 'flex';
   document.getElementById('result-card').style.display = 'none';
-  document.getElementById('yt-iframe').src = ''; // stop video playback
+  document.getElementById('yt-iframe').src = '';
   await startCamera();
 }
 
@@ -547,7 +592,7 @@ async function analyzeFrame(base64) {
   const vf=document.getElementById('viewfinder');
   vf.classList.add('locked');
   try {
-    const res = await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageBase64:base64,mediaType:'image/jpeg'})});
+    const res = await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageBase64:base64,mediaType:'image/jpeg',lang:currentLang})});
     if(res.status===429){toast(_t('toastRateLimit'));return;}
     if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error||'Server error');}
     const parsed=await res.json();
@@ -741,15 +786,176 @@ function gamAwardXP(concept, confidence) {
 }
 
 // Hook into showResult — fires on every successful detection
+// NOTE: gamAwardXP is no longer called here — XP is only awarded after quiz
 const _origShowResult = showResult;
 showResult = function(data) {
   _origShowResult(data);
   gamUpdateStreak();
-  gamAwardXP(
-    (data.concept || data.display_name || '').toLowerCase(),
-    data.confidence || 0.7
-  );
+  // Store latest scan data for quiz to use
+  window._lastScanData = data;
 };
+
+// ══════════════════════════════════════════════════════════════
+// QUIZ ENGINE
+// Appears after video ends. XP only awarded on correct answer.
+// One retry allowed, then no XP.
+// ══════════════════════════════════════════════════════════════
+let quizState = { active:false, correctIndex:-1, attempts:0, xpAmount:0, concept:'', confidence:0 };
+let ytPlayer = null;
+
+// YouTube IFrame API callback — fires when API is ready
+window.onYouTubeIframeAPIReady = function() {
+  // Player is created fresh each time a video loads — see initYTPlayer()
+};
+
+function initYTPlayer(videoId, autoplay) {
+  // Destroy existing player if any
+  if (ytPlayer) { try { ytPlayer.destroy(); } catch(e){} ytPlayer = null; }
+
+  // Hide quiz when new video loads
+  hideQuiz();
+
+  ytPlayer = new YT.Player('yt-iframe', {
+    videoId: videoId,
+    playerVars: {
+      autoplay:        autoplay ? 1 : 0,
+      rel:             0,
+      modestbranding:  1,
+      enablejsapi:     1,
+    },
+    events: {
+      onStateChange: function(e) {
+        // YT.PlayerState.ENDED = 0
+        if (e.data === 0) { onVideoEnded(); }
+      }
+    }
+  });
+}
+
+function onVideoEnded() {
+  // Only show quiz if we have scan data and a quiz question from the API
+  const data = window._lastScanData;
+  if (!data || !data.quiz_question) return;
+  showQuiz(data);
+}
+
+function showQuiz(data) {
+  const q = data.quiz_question;
+  if (!q || !q.question || !q.options || q.options.length < 2) return;
+
+  quizState = {
+    active:      true,
+    correctIndex: q.answer_index,
+    attempts:    0,
+    xpAmount:    computeXP(data.concept, data.confidence),
+    concept:     (data.concept || data.display_name || '').toLowerCase(),
+    confidence:  data.confidence || 0.7,
+  };
+
+  // Render quiz header
+  document.getElementById('quiz-title').textContent =
+    currentLang === 'hi' ? '🧠 झटपट प्रश्न' : '🧠 Quick Quiz';
+  document.getElementById('quiz-xp-hint').textContent =
+    '+' + quizState.xpAmount + ' XP';
+
+  // Render question
+  document.getElementById('quiz-question').textContent = q.question;
+
+  // Render options
+  const optsEl = document.getElementById('quiz-options');
+  optsEl.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-opt';
+    btn.textContent = opt;
+    btn.onclick = () => handleQuizAnswer(i);
+    optsEl.appendChild(btn);
+  });
+
+  // Clear feedback
+  const fb = document.getElementById('quiz-feedback');
+  fb.textContent = '';
+  fb.className = '';
+
+  // Show quiz section
+  document.getElementById('quiz-section').classList.add('show');
+
+  // Scroll quiz into view smoothly
+  setTimeout(() => {
+    document.getElementById('quiz-section').scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }, 200);
+}
+
+function handleQuizAnswer(selectedIndex) {
+  if (!quizState.active) return;
+  quizState.attempts++;
+
+  const opts = document.querySelectorAll('.quiz-opt');
+  const fb   = document.getElementById('quiz-feedback');
+
+  if (selectedIndex === quizState.correctIndex) {
+    // ✅ Correct answer
+    opts[selectedIndex].classList.add('correct');
+    opts.forEach((o, i) => { if (i !== selectedIndex) o.classList.add('disabled'); });
+    quizState.active = false;
+
+    if (quizState.attempts === 1) {
+      // First try — full XP
+      fb.textContent = currentLang === 'hi'
+        ? `🎉 सही जवाब! +${quizState.xpAmount} XP मिले!`
+        : `🎉 Correct! +${quizState.xpAmount} XP earned!`;
+      fb.className = 'correct';
+      gamAwardXP(quizState.concept, quizState.confidence);
+    } else {
+      // Second try — half XP
+      const halfXP = Math.floor(quizState.xpAmount / 2);
+      fb.textContent = currentLang === 'hi'
+        ? `✅ सही! दूसरी कोशिश में। +${halfXP} XP`
+        : `✅ Correct on second try! +${halfXP} XP`;
+      fb.className = 'correct';
+      // Award half XP by temporarily halving confidence
+      gamAwardXP(quizState.concept, 0.5);
+    }
+  } else {
+    // ❌ Wrong answer
+    opts[selectedIndex].classList.add('wrong');
+
+    if (quizState.attempts >= 1 && quizState.attempts < 2) {
+      // First wrong — allow retry
+      fb.textContent = currentLang === 'hi'
+        ? '❌ गलत! एक और मौका…'
+        : '❌ Wrong! One more try…';
+      fb.className = 'wrong';
+    } else {
+      // Second wrong — no XP, reveal answer
+      quizState.active = false;
+      opts.forEach((o, i) => {
+        if (i === quizState.correctIndex) o.classList.add('correct');
+        else o.classList.add('disabled');
+      });
+      fb.textContent = currentLang === 'hi'
+        ? `😔 कोई XP नहीं। सही जवाब था: ${quizState.correctIndex + 1} नंबर`
+        : `😔 No XP this time. The correct answer was highlighted.`;
+      fb.className = 'no-xp';
+    }
+  }
+}
+
+function hideQuiz() {
+  document.getElementById('quiz-section').classList.remove('show');
+  quizState.active = false;
+  window._lastScanData = null;
+}
+
+// Compute XP amount (same logic as before, based on confidence)
+function computeXP(concept, confidence) {
+  const g = gamLoad();
+  let base = 20;
+  if (confidence >= 0.9)       base = 50;
+  else if (confidence >= 0.75) base = 35;
+  const isNew = !g.discoveries.includes((concept||'').toLowerCase());
+  return base + (isNew ? 30 : 0);
+}
 
 // Init on load — gamRender is now called inside setLang so no separate listener needed
 window.addEventListener('DOMContentLoaded', () => { gamRender(); });
