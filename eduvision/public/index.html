@@ -95,7 +95,12 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
 :lang(hi) #streak-badge { font-size:0.82rem; }
 :lang(hi) #disco-badge { font-size:0.82rem; }
 
-/* ── QUIZ ── */
+/* Quiz trigger button */
+#quiz-trigger-btn { width:100%; padding:12px; border-radius:14px; background:linear-gradient(135deg,rgba(0,245,160,0.15),rgba(168,85,247,0.15)); border:1.5px solid rgba(0,245,160,0.35); color:var(--accent); font-family:'Space Grotesk',sans-serif; font-size:0.9rem; font-weight:700; cursor:pointer; transition:all 0.2s; letter-spacing:0.02em; }
+#quiz-trigger-btn:hover { background:linear-gradient(135deg,rgba(0,245,160,0.25),rgba(168,85,247,0.25)); transform:translateY(-1px); box-shadow:0 4px 20px rgba(0,245,160,0.2); }
+:lang(hi) #quiz-trigger-btn { font-size:0.95rem; }
+
+/* Quiz section */
 #quiz-section { display:none; margin:12px 16px; border-radius:16px; background:linear-gradient(135deg,rgba(0,245,160,0.06),rgba(168,85,247,0.06)); border:1.5px solid rgba(0,245,160,0.25); overflow:hidden; }
 #quiz-section.show { display:block; }
 #quiz-header { padding:12px 16px 8px; display:flex; align-items:center; gap:8px; border-bottom:1px solid rgba(0,245,160,0.15); }
@@ -241,6 +246,10 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
         <div id="alt-section">
           <div class="alt-row-label"></div>
           <div id="alt-row"></div>
+        </div>
+        <!-- QUIZ TRIGGER BUTTON -->
+        <div id="quiz-trigger-wrap" style="display:none; padding:0 16px 10px;">
+          <button id="quiz-trigger-btn" onclick="triggerQuiz()"></button>
         </div>
         <!-- QUIZ SECTION -->
         <div id="quiz-section">
@@ -783,6 +792,8 @@ showResult = function(data) {
   gamUpdateStreak();
   // Store latest scan data for quiz to use
   window._lastScanData = data;
+  // Show quiz trigger button if quiz data is available
+  showQuizTrigger(data);
 };
 
 // ══════════════════════════════════════════════════════════════
@@ -835,9 +846,28 @@ window.addEventListener('message', function(e) {
   } catch(_) {}
 });
 
+function showQuizTrigger(data) {
+  if (!data || !data.quiz_question) return;
+  const wrap = document.getElementById('quiz-trigger-wrap');
+  const btn  = document.getElementById('quiz-trigger-btn');
+  btn.textContent = currentLang === 'hi'
+    ? '🧠 क्विज़ लें  +' + computeXP(data.concept, data.confidence) + ' XP'
+    : '🧠 Take Quiz  +' + computeXP(data.concept, data.confidence) + ' XP';
+  wrap.style.display = 'block';
+}
+
+function triggerQuiz() {
+  const data = window._lastScanData;
+  if (!data || !data.quiz_question) return;
+  document.getElementById('quiz-trigger-wrap').style.display = 'none';
+  showQuiz(data);
+}
+
 function onVideoEnded() {
   const data = window._lastScanData;
   if (!data || !data.quiz_question) return;
+  // Auto-trigger quiz when video ends (postMessage detection)
+  document.getElementById('quiz-trigger-wrap').style.display = 'none';
   showQuiz(data);
 }
 
@@ -929,6 +959,7 @@ function handleQuizAnswer(selectedIndex) {
 
 function hideQuiz() {
   document.getElementById('quiz-section').classList.remove('show');
+  document.getElementById('quiz-trigger-wrap').style.display = 'none';
   quizState.active = false;
   window._lastScanData = null;
 }
