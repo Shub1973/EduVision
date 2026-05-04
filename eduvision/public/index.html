@@ -798,15 +798,38 @@ function setYTVideo(videoId, autoplay) {
   hideQuiz();
   const iframe = document.getElementById('yt-iframe');
   iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=${autoplay?1:0}&rel=0&modestbranding=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`;
+
+  // Once iframe loads, subscribe to YouTube player events via postMessage
+  iframe.onload = function() {
+    setTimeout(() => {
+      try {
+        iframe.contentWindow.postMessage(JSON.stringify({
+          event: 'listening',
+          id:    1,
+        }), '*');
+        iframe.contentWindow.postMessage(JSON.stringify({
+          event:  'command',
+          func:   'addEventListener',
+          args:   ['onStateChange'],
+          id:     1,
+        }), '*');
+      } catch(e) {}
+    }, 500); // small delay to ensure YT player is initialised inside iframe
+  };
 }
 
-// Listen for YouTube postMessage events (video ended = info.playerState === 0)
+// Listen for YouTube postMessage events (video ended = playerState 0)
 window.addEventListener('message', function(e) {
   if (!e.origin.includes('youtube.com')) return;
   try {
-    const data = JSON.parse(e.data);
-    if (data.event === 'onStateChange' && data.info === 0) {
-      // playerState 0 = ended
+    const msg = JSON.parse(e.data);
+    // YouTube sends state changes in two possible formats
+    const isStateChange = msg.event === 'onStateChange' ||
+                          msg.event === 'infoDelivery' && msg.info && msg.info.playerState !== undefined;
+    const state = msg.info && typeof msg.info === 'object'
+      ? msg.info.playerState
+      : msg.info;
+    if (isStateChange && state === 0) {
       onVideoEnded();
     }
   } catch(_) {}
