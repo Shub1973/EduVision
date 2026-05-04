@@ -7,7 +7,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Bebas+Neue&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/png" href="/icons/icon-192x192.png">
-<script src="https://www.youtube.com/iframe_api"></script>
   <style>
 :root {
   --bg: #050508; --surface: #0f0f15; --surface2: #181820;
@@ -484,15 +483,10 @@ async function loadVideos(topic, autoplay = false) {
       throw new Error(_t('ytNotFound'));
     }
 
-    // Play primary video via YT Player API for end-of-video detection
+    // Play primary video — simple iframe.src (reliable cross-device)
+    // enablejsapi=1 allows postMessage end-detection without YT.Player
     const primary = videos[0];
-    if (typeof YT !== 'undefined' && YT.Player) {
-      initYTPlayer(primary.id, autoplay);
-    } else {
-      // Fallback if YT API not loaded yet
-      document.getElementById('yt-iframe').src =
-        `https://www.youtube.com/embed/${primary.id}?autoplay=${autoplay?1:0}&rel=0&modestbranding=1&enablejsapi=1`;
-    }
+    setYTVideo(primary.id, autoplay);
     document.getElementById('video-title-display').textContent = primary.title;
     document.getElementById('video-channel-display').textContent = '▶ ' + primary.channel;
 
@@ -504,11 +498,7 @@ async function loadVideos(topic, autoplay = false) {
       chip.innerHTML = `<img src="${v.thumb}" loading="lazy"/><div class="alt-chip-label">${v.title}</div>`;
       chip.onclick = () => {
         hideQuiz();
-        if (typeof YT !== 'undefined' && YT.Player) {
-          initYTPlayer(v.id, true);
-        } else {
-          document.getElementById('yt-iframe').src = `https://www.youtube.com/embed/${v.id}?autoplay=1&rel=0&enablejsapi=1`;
-        }
+        setYTVideo(v.id, true);
         document.getElementById('video-title-display').textContent = v.title;
         document.getElementById('video-channel-display').textContent = '▶ ' + v.channel;
       };
@@ -799,41 +789,30 @@ showResult = function(data) {
 // QUIZ ENGINE
 // Appears after video ends. XP only awarded on correct answer.
 // One retry allowed, then no XP.
+// Video end detected via postMessage from YouTube iframe.
 // ══════════════════════════════════════════════════════════════
 let quizState = { active:false, correctIndex:-1, attempts:0, xpAmount:0, concept:'', confidence:0 };
-let ytPlayer = null;
 
-// YouTube IFrame API callback — fires when API is ready
-window.onYouTubeIframeAPIReady = function() {
-  // Player is created fresh each time a video loads — see initYTPlayer()
-};
-
-function initYTPlayer(videoId, autoplay) {
-  // Destroy existing player if any
-  if (ytPlayer) { try { ytPlayer.destroy(); } catch(e){} ytPlayer = null; }
-
-  // Hide quiz when new video loads
+// Simple video setter — keeps existing iframe element intact (no DOM replacement)
+function setYTVideo(videoId, autoplay) {
   hideQuiz();
-
-  ytPlayer = new YT.Player('yt-iframe', {
-    videoId: videoId,
-    playerVars: {
-      autoplay:        autoplay ? 1 : 0,
-      rel:             0,
-      modestbranding:  1,
-      enablejsapi:     1,
-    },
-    events: {
-      onStateChange: function(e) {
-        // YT.PlayerState.ENDED = 0
-        if (e.data === 0) { onVideoEnded(); }
-      }
-    }
-  });
+  const iframe = document.getElementById('yt-iframe');
+  iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=${autoplay?1:0}&rel=0&modestbranding=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`;
 }
 
+// Listen for YouTube postMessage events (video ended = info.playerState === 0)
+window.addEventListener('message', function(e) {
+  if (!e.origin.includes('youtube.com')) return;
+  try {
+    const data = JSON.parse(e.data);
+    if (data.event === 'onStateChange' && data.info === 0) {
+      // playerState 0 = ended
+      onVideoEnded();
+    }
+  } catch(_) {}
+});
+
 function onVideoEnded() {
-  // Only show quiz if we have scan data and a quiz question from the API
   const data = window._lastScanData;
   if (!data || !data.quiz_question) return;
   showQuiz(data);
@@ -844,24 +823,20 @@ function showQuiz(data) {
   if (!q || !q.question || !q.options || q.options.length < 2) return;
 
   quizState = {
-    active:      true,
+    active:       true,
     correctIndex: q.answer_index,
-    attempts:    0,
-    xpAmount:    computeXP(data.concept, data.confidence),
-    concept:     (data.concept || data.display_name || '').toLowerCase(),
-    confidence:  data.confidence || 0.7,
+    attempts:     0,
+    xpAmount:     computeXP(data.concept, data.confidence),
+    concept:      (data.concept || data.display_name || '').toLowerCase(),
+    confidence:   data.confidence || 0.7,
   };
 
-  // Render quiz header
   document.getElementById('quiz-title').textContent =
     currentLang === 'hi' ? '🧠 झटपट प्रश्न' : '🧠 Quick Quiz';
   document.getElementById('quiz-xp-hint').textContent =
     '+' + quizState.xpAmount + ' XP';
-
-  // Render question
   document.getElementById('quiz-question').textContent = q.question;
 
-  // Render options
   const optsEl = document.getElementById('quiz-options');
   optsEl.innerHTML = '';
   q.options.forEach((opt, i) => {
@@ -872,15 +847,10 @@ function showQuiz(data) {
     optsEl.appendChild(btn);
   });
 
-  // Clear feedback
   const fb = document.getElementById('quiz-feedback');
-  fb.textContent = '';
-  fb.className = '';
+  fb.textContent = ''; fb.className = '';
 
-  // Show quiz section
   document.getElementById('quiz-section').classList.add('show');
-
-  // Scroll quiz into view smoothly
   setTimeout(() => {
     document.getElementById('quiz-section').scrollIntoView({ behavior:'smooth', block:'nearest' });
   }, 200);
@@ -894,48 +864,41 @@ function handleQuizAnswer(selectedIndex) {
   const fb   = document.getElementById('quiz-feedback');
 
   if (selectedIndex === quizState.correctIndex) {
-    // ✅ Correct answer
     opts[selectedIndex].classList.add('correct');
     opts.forEach((o, i) => { if (i !== selectedIndex) o.classList.add('disabled'); });
     quizState.active = false;
 
     if (quizState.attempts === 1) {
-      // First try — full XP
       fb.textContent = currentLang === 'hi'
         ? `🎉 सही जवाब! +${quizState.xpAmount} XP मिले!`
         : `🎉 Correct! +${quizState.xpAmount} XP earned!`;
       fb.className = 'correct';
       gamAwardXP(quizState.concept, quizState.confidence);
     } else {
-      // Second try — half XP
       const halfXP = Math.floor(quizState.xpAmount / 2);
       fb.textContent = currentLang === 'hi'
         ? `✅ सही! दूसरी कोशिश में। +${halfXP} XP`
         : `✅ Correct on second try! +${halfXP} XP`;
       fb.className = 'correct';
-      // Award half XP by temporarily halving confidence
       gamAwardXP(quizState.concept, 0.5);
     }
   } else {
-    // ❌ Wrong answer
     opts[selectedIndex].classList.add('wrong');
 
-    if (quizState.attempts >= 1 && quizState.attempts < 2) {
-      // First wrong — allow retry
+    if (quizState.attempts < 2) {
       fb.textContent = currentLang === 'hi'
         ? '❌ गलत! एक और मौका…'
         : '❌ Wrong! One more try…';
       fb.className = 'wrong';
     } else {
-      // Second wrong — no XP, reveal answer
       quizState.active = false;
       opts.forEach((o, i) => {
         if (i === quizState.correctIndex) o.classList.add('correct');
         else o.classList.add('disabled');
       });
       fb.textContent = currentLang === 'hi'
-        ? `😔 कोई XP नहीं। सही जवाब था: ${quizState.correctIndex + 1} नंबर`
-        : `😔 No XP this time. The correct answer was highlighted.`;
+        ? '😔 कोई XP नहीं। सही जवाब ऊपर दिखाया गया है।'
+        : '😔 No XP this time. The correct answer is highlighted.';
       fb.className = 'no-xp';
     }
   }
@@ -947,7 +910,6 @@ function hideQuiz() {
   window._lastScanData = null;
 }
 
-// Compute XP amount (same logic as before, based on confidence)
 function computeXP(concept, confidence) {
   const g = gamLoad();
   let base = 20;
