@@ -678,6 +678,11 @@ function showResult(data){
   document.getElementById('result-card').style.display='flex';
   document.getElementById('result-card').style.flexDirection='column';
   toast(_t('toastDetected', {name: displayName}));
+
+  // ── Gamification hooks ──────────────────────────────────────
+  gamUpdateStreak();
+  window._lastScanData = data;
+  showQuizTrigger(data);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -783,18 +788,6 @@ function gamAwardXP(concept, confidence) {
 
   gamRender();
 }
-
-// Hook into showResult — fires on every successful detection
-// NOTE: gamAwardXP is no longer called here — XP is only awarded after quiz
-const _origShowResult = showResult;
-showResult = function(data) {
-  _origShowResult(data);
-  gamUpdateStreak();
-  // Store latest scan data for quiz to use
-  window._lastScanData = data;
-  // Show quiz trigger button if quiz data is available
-  showQuizTrigger(data);
-};
 
 // ══════════════════════════════════════════════════════════════
 // QUIZ ENGINE
