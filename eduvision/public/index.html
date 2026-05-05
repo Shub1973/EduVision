@@ -679,7 +679,7 @@ function showResult(data){
   document.getElementById('result-card').style.flexDirection='column';
   toast(_t('toastDetected', {name: displayName}));
 
-  // ── Gamification hooks ──────────────────────────────────────
+  // ── Gamification hooks — called directly, no wrapper needed ──
   gamUpdateStreak();
   window._lastScanData = data;
   showQuizTrigger(data);
