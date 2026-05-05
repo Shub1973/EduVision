@@ -574,6 +574,7 @@ function toggleAuto() {
 
 async function captureNow() {
   if (analyzing) return;
+  window._lastScanData = null; // clear previous scan data when new scan starts
   const vid = document.getElementById('video-feed');
   if (!vid.videoWidth) return;
   const flash = document.getElementById('flash');
@@ -679,9 +680,9 @@ function showResult(data){
   document.getElementById('result-card').style.flexDirection='column';
   toast(_t('toastDetected', {name: displayName}));
 
-  // ── Gamification hooks — called directly, no wrapper needed ──
+  // ── Gamification hooks — AFTER loadVideos so hideQuiz doesn't wipe data ──
   gamUpdateStreak();
-  window._lastScanData = data;
+  window._lastScanData = data;  // set AFTER loadVideos/setYTVideo/hideQuiz chain
   showQuizTrigger(data);
 }
 
@@ -954,7 +955,8 @@ function hideQuiz() {
   document.getElementById('quiz-section').classList.remove('show');
   document.getElementById('quiz-trigger-wrap').style.display = 'none';
   quizState.active = false;
-  window._lastScanData = null;
+  // NOTE: _lastScanData is intentionally NOT cleared here
+  // It is cleared in captureNow() when a new scan starts
 }
 
 function computeXP(concept, confidence) {
