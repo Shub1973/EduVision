@@ -237,6 +237,10 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
         <div id="concept-desc"></div>
         <div id="topics-row"></div>
         <div id="lang-indicator" class="en">ENGLISH VIDEOS</div>
+        <!-- QUIZ TRIGGER BUTTON — above video so always visible -->
+        <div id="quiz-trigger-wrap" style="display:none; padding:10px 16px 6px;">
+          <button id="quiz-trigger-btn" onclick="triggerQuiz()"></button>
+        </div>
         <div id="video-section">
           <div id="video-label"></div>
           <div id="yt-wrap"><iframe id="yt-iframe" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture"></iframe></div>
@@ -246,10 +250,6 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
         <div id="alt-section">
           <div class="alt-row-label"></div>
           <div id="alt-row"></div>
-        </div>
-        <!-- QUIZ TRIGGER BUTTON -->
-        <div id="quiz-trigger-wrap" style="display:none; padding:0 16px 10px;">
-          <button id="quiz-trigger-btn" onclick="triggerQuiz()"></button>
         </div>
         <!-- QUIZ SECTION -->
         <div id="quiz-section">
@@ -854,6 +854,10 @@ function showQuizTrigger(data) {
     : '🧠 Take Quiz  +' + computeXP(data.concept, data.confidence) + ' XP';
   wrap.style.display = 'block';
   console.log('[CurioX DEBUG] quiz button shown, display:', wrap.style.display);
+  // Scroll the button into view so the user can see it
+  setTimeout(() => {
+    wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 300);
 }
 
 function triggerQuiz() {
