@@ -1,4 +1,4 @@
-const CACHE_NAME = "curiox-cache-v19";
+const CACHE_NAME = "curiox-cache-v20";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
@@ -41,40 +41,49 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-//const CACHE_NAME = "curiox-cache-v11";
-
-// Fetch event — serve from cache, fallback to network
+// Fetch event — smart caching strategy
 self.addEventListener("fetch", (event) => {
   const req = event.request;
+  const url = new URL(req.url);
 
-  // ── NEVER cache these — pass straight to network ──────────────────────────
-  // 1. POST requests (Cache API doesn't support them)
-  // 2. API calls (/api/*) — always need fresh responses
-  // 3. Non-http(s) schemes (chrome-extension://, etc.)
+  // ── NEVER intercept these ─────────────────────────────────────────────────
+  // POST requests, API calls, non-http schemes (chrome-extension etc.)
   if (
     req.method !== "GET" ||
-    req.url.includes("/api/") ||
+    url.pathname.startsWith("/api/") ||
     !req.url.startsWith("http")
   ) {
-    return; // let browser handle normally — no SW interception
+    return;
   }
 
+  // ── NETWORK FIRST for HTML pages ─────────────────────────────────────────
+  // Always fetch fresh HTML — fall back to cache only if offline
+  // This ensures users always get latest index.html without clearing cache
+  if (req.headers.get("accept") && req.headers.get("accept").includes("text/html")) {
+    event.respondWith(
+      fetch(req)
+        .then((networkResponse) => {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
+          return networkResponse;
+        })
+        .catch(() => caches.match(req)) // offline fallback
+    );
+    return;
+  }
+
+  // ── CACHE FIRST for all other assets (icons, fonts, etc.) ────────────────
   event.respondWith(
     caches.match(req).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
+      if (cachedResponse) return cachedResponse;
       return fetch(req).then((networkResponse) => {
-        // Only cache same-origin successful GET responses
         if (
           networkResponse &&
           networkResponse.status === 200 &&
           networkResponse.type === "basic"
         ) {
-          const responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(req, responseClone);
-          });
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
         }
         return networkResponse;
       });
