@@ -100,7 +100,8 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
 :lang(hi) #disco-badge { font-size:1.0rem; }
 
 /* Quiz trigger button */
-#quiz-trigger-btn { width:100%; padding:12px; border-radius:14px; background:linear-gradient(135deg,rgba(0,245,160,0.15),rgba(168,85,247,0.15)); border:1.5px solid rgba(0,245,160,0.35); color:var(--accent); font-family:'Space Grotesk',sans-serif; font-size:0.9rem; font-weight:700; cursor:pointer; transition:all 0.2s; letter-spacing:0.02em; }
+#quiz-trigger-wrap { position: relative; z-index: 50; }
+#quiz-trigger-btn { width:100%; padding:12px; border-radius:14px; background:linear-gradient(135deg,rgba(0,245,160,0.15),rgba(168,85,247,0.15)); border:1.5px solid rgba(0,245,160,0.35); color:var(--accent); font-family:'Space Grotesk',sans-serif; font-size:0.9rem; font-weight:700; cursor:pointer; transition:all 0.2s; letter-spacing:0.02em; position: relative; z-index: 51; pointer-events: all; }
 #quiz-trigger-btn:hover { background:linear-gradient(135deg,rgba(0,245,160,0.25),rgba(168,85,247,0.25)); transform:translateY(-1px); box-shadow:0 4px 20px rgba(0,245,160,0.2); }
 :lang(hi) #quiz-trigger-btn { font-size:0.95rem; }
 
