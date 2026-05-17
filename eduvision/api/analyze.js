@@ -75,7 +75,7 @@ module.exports = async function handler(req, res) {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   const langInstruction = lang === "hi"
-    ? 'IMPORTANT: Return "display_name", "description", and all quiz fields in Hindi (Devanagari script). Use simple Hindi that a school student can understand. Keep "concept" in English (it is used for search).'
+    ? 'IMPORTANT: Return "display_name", "description", and all quiz fields in Hindi (Devanagari script). Use clear Hindi that a school student can understand. Keep "concept" in English (it is used for search).'
     : 'Return "display_name", "description", and all quiz fields in English.';
 
   const prompt = `You are an educational concept detector for a real-time learning app.
@@ -94,13 +94,19 @@ Respond ONLY with a valid JSON object — no markdown, no preamble:
   "related_topics": ["topic1","topic2","topic3"],
   "has_educational_content": true,
   "quiz_question": {
-    "question": "A simple multiple-choice question about the concept in the requested language",
+    "question": "A conceptual question in the requested language that tests UNDERSTANDING, not just recognition. Use 'why' or 'how' framing where possible. The question must require knowledge of the concept to answer correctly — it should NOT be answerable by common sense or process of elimination alone.",
     "options": ["Option A", "Option B", "Option C"],
     "answer_index": 0
   }
 }
 
-The quiz_question must be simple enough for a school student aged 10-14. The answer_index is 0-based (0 = first option is correct).
+STRICT RULES FOR quiz_question:
+1. All 3 options must be PLAUSIBLE — a student who hasn't watched the video should find all 3 believable, not obviously wrong.
+2. The wrong options must be CLOSELY RELATED to the concept — common misconceptions, similar-sounding terms, or partially correct ideas. Never use absurd or unrelated distractors.
+3. The question must test a SPECIFIC DETAIL or mechanism from the concept — not just the definition. For example, instead of "What is photosynthesis?", ask "Which gas is released as a byproduct of photosynthesis?" with options like Oxygen / Carbon Dioxide / Nitrogen.
+4. Avoid questions where one option is obviously longer or more detailed than others — keep options similar in length.
+5. The correct answer_index is 0-based (0 = first option is correct). Randomise which position the correct answer appears in.
+6. Target difficulty: a student who watched the video attentively should get it right; a student who didn't watch should find all 3 options plausible.
 
 If there is NO clear educational content (blank wall, random clutter, person's face), set has_educational_content to false, confidence below 0.4, and quiz_question to null.`;
 
