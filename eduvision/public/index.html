@@ -860,11 +860,7 @@ function showQuizTrigger(data) {
 
 function triggerQuiz() {
   const data = window._lastScanData;
-  console.log('[QUIZ] triggerQuiz called, _lastScanData:', !!data, 'quiz_question:', !!(data && data.quiz_question));
-  if (!data || !data.quiz_question) {
-    console.log('[QUIZ] BLOCKED — no data or no quiz_question');
-    return;
-  }
+  if (!data || !data.quiz_question) return;
   document.getElementById('quiz-trigger-wrap').style.display = 'none';
   showQuiz(data);
 }
