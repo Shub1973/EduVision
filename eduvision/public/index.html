@@ -22,6 +22,9 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
 #video-feed { width: 100%; height: 100%; object-fit: cover; display: block; }
 #canvas-hidden { display: none; }
 #viewfinder { position: absolute; inset: 0; pointer-events: none; }
+#viewfinder * { pointer-events: none; }
+#snap-btn-wrap { pointer-events: all; }
+#snap-btn { pointer-events: all; }
 .vf-corner { position: absolute; width: 50px; height: 50px; border-color: var(--accent); border-style: solid; opacity: 0.7; transition: all 0.3s; }
 .vf-tl { top: 20px; left: 20px; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
 .vf-tr { top: 20px; right: 20px; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
@@ -46,8 +49,9 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
 #flash.pop { opacity: 0.35; }
 #bottom-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); min-height: 0; }
 #controls { display: flex; align-items: center; gap: 12px; padding: 14px 16px 10px; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
-#snap-btn { margin-left: auto; padding: 8px 16px; background: var(--surface2); border: 1.5px solid var(--border); border-radius: 100px; color: var(--text); font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 0.78rem; cursor: pointer; transition: all 0.2s; flex-shrink: 0; }
-#snap-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+#snap-btn-wrap { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 10; pointer-events: all; }
+#snap-btn { padding: 14px 36px; background: rgba(0,0,0,0.55); border: 2px solid rgba(255,255,255,0.85); border-radius: 100px; color: #fff; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; backdrop-filter: blur(8px); letter-spacing: 0.04em; box-shadow: 0 4px 24px rgba(0,0,0,0.35); }
+#snap-btn:hover { background: rgba(0,245,160,0.25); border-color: var(--accent); color: var(--accent); box-shadow: 0 0 24px rgba(0,245,160,0.3); }
 #content-area { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 20px; }
 #idle-hint { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 24px; gap: 12px; text-align: center; color: var(--muted); min-height: 200px; }
 .idle-icon { font-size: 2.5rem; opacity: 0.4; }
@@ -75,14 +79,14 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
 #lang-indicator::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 
 /* ── GAMIFICATION ── */
-#gam-strip { display:flex; align-items:center; gap:12px; padding:10px 16px; background:linear-gradient(135deg,rgba(0,245,160,0.08),rgba(0,200,245,0.08)); border-bottom:2px solid rgba(0,245,160,0.2); flex-shrink:0; }
-#level-badge { font-family:'Space Grotesk',sans-serif; font-size:0.78rem; font-weight:700; letter-spacing:0.04em; padding:5px 14px; border-radius:100px; background:linear-gradient(135deg,#00f5a0,#00c8f5); color:#000; flex-shrink:0; white-space:nowrap; box-shadow:0 0 14px rgba(0,245,160,0.45); }
-#xp-wrap { flex:1; display:flex; flex-direction:column; gap:4px; min-width:0; }
-#xp-label { font-family:'Space Grotesk',sans-serif; font-size:0.7rem; font-weight:600; color:var(--text); letter-spacing:0.02em; display:flex; justify-content:space-between; }
-#xp-bar-bg { height:8px; background:var(--surface2); border-radius:100px; overflow:hidden; border:1px solid rgba(0,245,160,0.2); }
+#gam-strip { display:flex; align-items:center; gap:14px; padding:14px 18px; background:linear-gradient(135deg,rgba(0,245,160,0.08),rgba(0,200,245,0.08)); border-bottom:2px solid rgba(0,245,160,0.2); flex-shrink:0; }
+#level-badge { font-family:'Space Grotesk',sans-serif; font-size:0.95rem; font-weight:700; letter-spacing:0.04em; padding:8px 18px; border-radius:100px; background:linear-gradient(135deg,#00f5a0,#00c8f5); color:#000; flex-shrink:0; white-space:nowrap; box-shadow:0 0 14px rgba(0,245,160,0.45); }
+#xp-wrap { flex:1; display:flex; flex-direction:column; gap:6px; min-width:0; }
+#xp-label { font-family:'Space Grotesk',sans-serif; font-size:0.88rem; font-weight:600; color:var(--text); letter-spacing:0.02em; display:flex; justify-content:space-between; }
+#xp-bar-bg { height:10px; background:var(--surface2); border-radius:100px; overflow:hidden; border:1px solid rgba(0,245,160,0.2); }
 #xp-bar-fill { height:100%; background:linear-gradient(90deg,#00f5a0,#00c8f5); border-radius:100px; transition:width 0.6s cubic-bezier(.4,0,.2,1); box-shadow:0 0 8px rgba(0,245,160,0.5); }
-#streak-badge { display:flex; align-items:center; gap:5px; font-family:'Space Grotesk',sans-serif; font-size:0.78rem; font-weight:700; color:#fff; background:linear-gradient(135deg,#ff6b35,#ffa502); padding:5px 12px; border-radius:100px; flex-shrink:0; white-space:nowrap; box-shadow:0 0 12px rgba(255,165,2,0.4); }
-#disco-badge { display:flex; align-items:center; gap:5px; font-family:'Space Grotesk',sans-serif; font-size:0.78rem; font-weight:700; color:#000; background:linear-gradient(135deg,#00c8f5,#a855f7); padding:5px 12px; border-radius:100px; flex-shrink:0; white-space:nowrap; box-shadow:0 0 12px rgba(0,200,245,0.4); }
+#streak-badge { display:flex; align-items:center; gap:6px; font-family:'Space Grotesk',sans-serif; font-size:0.95rem; font-weight:700; color:#fff; background:linear-gradient(135deg,#ff6b35,#ffa502); padding:8px 16px; border-radius:100px; flex-shrink:0; white-space:nowrap; box-shadow:0 0 12px rgba(255,165,2,0.4); }
+#disco-badge { display:flex; align-items:center; gap:6px; font-family:'Space Grotesk',sans-serif; font-size:0.95rem; font-weight:700; color:#000; background:linear-gradient(135deg,#00c8f5,#a855f7); padding:8px 16px; border-radius:100px; flex-shrink:0; white-space:nowrap; box-shadow:0 0 12px rgba(0,200,245,0.4); }
 @keyframes xpPop { 0%{transform:scale(1)} 40%{transform:scale(1.4)} 100%{transform:scale(1)} }
 .xp-pop { animation: xpPop 0.45s ease; }
 #levelup-toast { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.7); background:linear-gradient(135deg,#0f0f15,#181820); border:2px solid var(--accent); border-radius:24px; padding:28px 36px; text-align:center; z-index:9995; opacity:0; pointer-events:none; transition:all 0.35s cubic-bezier(.34,1.56,.64,1); backdrop-filter:blur(16px); box-shadow:0 0 60px rgba(0,245,160,0.3); }
@@ -90,10 +94,10 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
 #levelup-toast .lu-icon { font-size:3rem; display:block; margin-bottom:10px; }
 #levelup-toast .lu-title { font-family:'Bebas Neue',sans-serif; font-size:2rem; background:linear-gradient(90deg,#00f5a0,#00c8f5); -webkit-background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:0.08em; }
 #levelup-toast .lu-sub { font-family:'Space Grotesk',sans-serif; font-size:0.85rem; color:var(--text); margin-top:6px; font-weight:600; }
-:lang(hi) #level-badge { font-size:0.82rem; }
-:lang(hi) #xp-label { font-size:0.74rem; }
-:lang(hi) #streak-badge { font-size:0.82rem; }
-:lang(hi) #disco-badge { font-size:0.82rem; }
+:lang(hi) #level-badge { font-size:1.0rem; }
+:lang(hi) #xp-label { font-size:0.92rem; }
+:lang(hi) #streak-badge { font-size:1.0rem; }
+:lang(hi) #disco-badge { font-size:1.0rem; }
 
 /* Quiz trigger button */
 #quiz-trigger-btn { width:100%; padding:12px; border-radius:14px; background:linear-gradient(135deg,rgba(0,245,160,0.15),rgba(168,85,247,0.15)); border:1.5px solid rgba(0,245,160,0.35); color:var(--accent); font-family:'Space Grotesk',sans-serif; font-size:0.9rem; font-weight:700; cursor:pointer; transition:all 0.2s; letter-spacing:0.02em; }
@@ -195,6 +199,10 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
       <div class="vf-corner vf-tl"></div><div class="vf-corner vf-tr"></div>
       <div class="vf-corner vf-bl"></div><div class="vf-corner vf-br"></div>
       <div id="scan-line"></div>
+      <!-- Snap button centered at bottom of viewfinder -->
+      <div id="snap-btn-wrap">
+        <button id="snap-btn" onclick="captureNow()"></button>
+      </div>
     </div>
     <div id="flash"></div>
     <div id="cam-error"><div style="font-size:2.5rem">📷</div><p></p></div>
@@ -206,8 +214,7 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
   </div>
 
   <div id="bottom-panel">
-    <div id="controls">
-      <button id="snap-btn" onclick="captureNow()"></button>
+    <div id="controls" style="display:none;">
     </div>
     <!-- GAMIFICATION STRIP -->
     <div id="gam-strip">
@@ -575,8 +582,6 @@ function toggleAuto() {
 async function captureNow() {
   if (analyzing) return;
   window._lastScanData = null; // clear previous scan data when new scan starts
-  document.getElementById('quiz-trigger-wrap').style.display = 'none';
-  document.getElementById('quiz-section').classList.remove('show');
   const vid = document.getElementById('video-feed');
   if (!vid.videoWidth) return;
   const flash = document.getElementById('flash');
@@ -684,8 +689,11 @@ function showResult(data){
 
   // ── Gamification hooks — AFTER loadVideos so hideQuiz doesn't wipe data ──
   gamUpdateStreak();
-  window._lastScanData = data;
+  window._lastScanData = data;  // set AFTER loadVideos/setYTVideo/hideQuiz chain
+  console.log('[CurioX DEBUG] _lastScanData set:', !!window._lastScanData);
+  console.log('[CurioX DEBUG] quiz_question:', JSON.stringify(data.quiz_question));
   showQuizTrigger(data);
+  console.log('[CurioX DEBUG] showQuizTrigger called');
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -843,13 +851,17 @@ window.addEventListener('message', function(e) {
 });
 
 function showQuizTrigger(data) {
+  console.log('[CurioX DEBUG] showQuizTrigger called, data:', !!data, 'quiz_question:', !!(data && data.quiz_question));
   if (!data || !data.quiz_question) return;
   const wrap = document.getElementById('quiz-trigger-wrap');
   const btn  = document.getElementById('quiz-trigger-btn');
+  console.log('[CurioX DEBUG] wrap element:', !!wrap, 'btn element:', !!btn);
   btn.textContent = currentLang === 'hi'
     ? '🧠 क्विज़ लें  +' + computeXP(data.concept, data.confidence) + ' XP'
     : '🧠 Take Quiz  +' + computeXP(data.concept, data.confidence) + ' XP';
   wrap.style.display = 'block';
+  console.log('[CurioX DEBUG] quiz button shown, display:', wrap.style.display);
+  // Scroll the button into view so the user can see it
   setTimeout(() => {
     wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, 300);
@@ -957,10 +969,11 @@ function handleQuizAnswer(selectedIndex) {
 }
 
 function hideQuiz() {
-  // Only hide the quiz QUESTIONS panel — NOT the trigger button
-  // Trigger button is hidden only when quiz starts (triggerQuiz) or new scan begins (captureNow)
   document.getElementById('quiz-section').classList.remove('show');
+  document.getElementById('quiz-trigger-wrap').style.display = 'none';
   quizState.active = false;
+  // NOTE: _lastScanData is intentionally NOT cleared here
+  // It is cleared in captureNow() when a new scan starts
 }
 
 function computeXP(concept, confidence) {
