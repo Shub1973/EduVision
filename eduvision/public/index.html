@@ -689,11 +689,8 @@ function showResult(data){
 
   // ── Gamification hooks — AFTER loadVideos so hideQuiz doesn't wipe data ──
   gamUpdateStreak();
-  window._lastScanData = data;  // set AFTER loadVideos/setYTVideo/hideQuiz chain
-  console.log('[CurioX DEBUG] _lastScanData set:', !!window._lastScanData);
-  console.log('[CurioX DEBUG] quiz_question:', JSON.stringify(data.quiz_question));
+  window._lastScanData = data;
   showQuizTrigger(data);
-  console.log('[CurioX DEBUG] showQuizTrigger called');
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -851,20 +848,13 @@ window.addEventListener('message', function(e) {
 });
 
 function showQuizTrigger(data) {
-  console.log('[CurioX DEBUG] showQuizTrigger called, data:', !!data, 'quiz_question:', !!(data && data.quiz_question));
   if (!data || !data.quiz_question) return;
   const wrap = document.getElementById('quiz-trigger-wrap');
   const btn  = document.getElementById('quiz-trigger-btn');
-  console.log('[CurioX DEBUG] wrap element:', !!wrap, 'btn element:', !!btn);
   btn.textContent = currentLang === 'hi'
     ? '🧠 क्विज़ लें  +' + computeXP(data.concept, data.confidence) + ' XP'
     : '🧠 Take Quiz  +' + computeXP(data.concept, data.confidence) + ' XP';
   wrap.style.display = 'block';
-  console.log('[CurioX DEBUG] quiz button shown, display:', wrap.style.display);
-  // Scroll the button into view so the user can see it
-  setTimeout(() => {
-    wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, 300);
 }
 
 function triggerQuiz() {
@@ -969,11 +959,10 @@ function handleQuizAnswer(selectedIndex) {
 }
 
 function hideQuiz() {
+  // Only hide the quiz QUESTIONS panel — NOT the trigger button
+  // Trigger button is hidden only when quiz starts (triggerQuiz) or new scan begins (captureNow)
   document.getElementById('quiz-section').classList.remove('show');
-  document.getElementById('quiz-trigger-wrap').style.display = 'none';
   quizState.active = false;
-  // NOTE: _lastScanData is intentionally NOT cleared here
-  // It is cleared in captureNow() when a new scan starts
 }
 
 function computeXP(concept, confidence) {
