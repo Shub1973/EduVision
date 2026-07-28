@@ -316,10 +316,8 @@ const i18n = {
     modeBadgeReady:      'READY',
     modeBadgeScanning:   'SCANNING…',
     modeBadgeFound:      'FOUND!',
-    modeBadgeAuto:       'AUTO SCAN',
     snapBtn:             '📸 Snap',
-    autoScanLabel:       'Auto Scan',
-    idleText:            'Point camera at\nan educational object\ntap Snap or enable Auto Scan',
+    idleText:            'Point camera at\nan educational object\nand tap Snap',
     scanningText:        'Analyzing with AI…',
     videoLabel:          'Now Playing',
     altRowLabel:         'More on this topic',
@@ -327,8 +325,6 @@ const i18n = {
     scanAgainBtn:        '🔍 Scan Again',
     camErrorMsg:         'Camera access denied.\nAllow permission and refresh.',
     installBtn:          '📲 Install CurioX',
-    toastAutoOn:         '🔄 Auto scan on',
-    toastAutoOff:        '⏸ Auto scan off',
     toastFrontCam:       'Front camera',
     toastRearCam:        'Rear camera',
     toastRateLimit:      '⏱ Rate limit — slow down',
@@ -351,10 +347,8 @@ const i18n = {
     modeBadgeReady:      'तैयार',
     modeBadgeScanning:   'स्कैन हो रहा है…',
     modeBadgeFound:      'मिल गया!',
-    modeBadgeAuto:       'ऑटो स्कैन',
     snapBtn:             '📸 स्नैप',
-    autoScanLabel:       'ऑटो स्कैन',
-    idleText:            'कैमरा किसी शैक्षिक\nवस्तु पर लगाएं\nस्नैप दबाएं या ऑटो स्कैन चालू करें',
+    idleText:            'कैमरा किसी शैक्षिक\nवस्तु पर लगाएं\nऔर स्नैप दबाएं',
     scanningText:        'AI से विश्लेषण हो रहा है…',
     videoLabel:          'अभी चल रहा है',
     altRowLabel:         'इस विषय पर और वीडियो',
@@ -362,8 +356,6 @@ const i18n = {
     scanAgainBtn:        '🔍 फिर से स्कैन करें',
     camErrorMsg:         'कैमरा अनुमति नहीं मिली।\nअनुमति दें और पेज रीफ्रेश करें।',
     installBtn:          '📲 CurioX इंस्टॉल करें',
-    toastAutoOn:         '🔄 ऑटो स्कैन चालू',
-    toastAutoOff:        '⏸ ऑटो स्कैन बंद',
     toastFrontCam:       'फ्रंट कैमरा',
     toastRearCam:        'रियर कैमरा',
     toastRateLimit:      '⏱ अनुरोध सीमा पार — थोड़ा रुकें',
@@ -394,7 +386,6 @@ function _t(key, vars) {
 // STATE
 // ══════════════════════════════════════════════
 let stream = null, facingMode = 'environment';
-let autoScanOn = false, autoInterval = null, intervalMs = 6000;
 let analyzing = false, lastConcept = '', currentVideoSet = null, currentSubject = '';
 let currentLang = localStorage.getItem('cx_lang') || 'en';
 
@@ -452,7 +443,6 @@ function applyUITranslations() {
 
   // Controls bar
   setText('snap-btn',       'snapBtn');
-  setTextQ('.toggle-label', 'autoScanLabel');
   // Idle hint
   setHtmlQ('.idle-text',    'idleText');
   // Scanning state
@@ -550,11 +540,6 @@ function stopCamera() {
   if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
   const vid = document.getElementById('video-feed');
   vid.srcObject = null;
-  if (autoScanOn) {
-    autoScanOn = false;
-    clearInterval(autoInterval); autoInterval = null;
-    document.getElementById('viewfinder').classList.remove('active','locked','found');
-  }
   document.getElementById('cam-off-overlay').classList.add('show');
 }
 
@@ -571,13 +556,6 @@ async function switchCamera() {
   facingMode = facingMode === 'environment' ? 'user' : 'environment';
   await startCamera();
   toast(facingMode === 'user' ? _t('toastFrontCam') : _t('toastRearCam'));
-}
-
-function toggleAuto() {
-  autoScanOn = !autoScanOn;
-  const vf = document.getElementById('viewfinder');
-  if (autoScanOn) { vf.classList.add('active'); autoInterval=setInterval(captureNow,intervalMs); toast(_t('toastAutoOn')); }
-  else { vf.classList.remove('active','locked','found'); clearInterval(autoInterval); autoInterval=null; toast(_t('toastAutoOff')); }
 }
 
 async function captureNow() {
