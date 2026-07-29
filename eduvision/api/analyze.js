@@ -143,6 +143,30 @@ If there is NO clear educational content (blank wall, random clutter, person's f
       return res.status(502).json({ error: "Could not parse AI response" });
     }
 
+    // ── Force-shuffle quiz options ──────────────────────────────────────────
+    // Claude is asked to randomise the answer position, but LLMs tend to drift
+    // toward a default pattern (usually always placing the correct answer first)
+    // over many calls. Shuffling here in code guarantees true randomness
+    // regardless of what position Claude picked.
+    if (
+      parsed.quiz_question &&
+      Array.isArray(parsed.quiz_question.options) &&
+      typeof parsed.quiz_question.answer_index === "number"
+    ) {
+      const q = parsed.quiz_question;
+      // Track correctness per option BEFORE shuffling (handles duplicate text safely)
+      const indexed = q.options.map((text, i) => ({ text, correct: i === q.answer_index }));
+
+      // Fisher-Yates shuffle
+      for (let i = indexed.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [indexed[i], indexed[j]] = [indexed[j], indexed[i]];
+      }
+
+      q.options = indexed.map((o) => o.text);
+      q.answer_index = indexed.findIndex((o) => o.correct);
+    }
+
     return res.status(200).json(parsed);
 
   } catch (err) {
