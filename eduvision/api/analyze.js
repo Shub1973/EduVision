@@ -74,8 +74,12 @@ module.exports = async function handler(req, res) {
   // Call Anthropic — key lives only here on the server
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  const langInstruction = lang === "hi"
-    ? 'IMPORTANT: Return "display_name", "description", and all quiz fields in Hindi (Devanagari script). Use clear Hindi that a school student can understand. Keep "concept" in English (it is used for search).'
+  const LANG_NAMES = {
+    hi: "Hindi (Devanagari script)",
+    bn: "Bengali (Bangla script)",
+  };
+  const langInstruction = LANG_NAMES[lang]
+    ? `IMPORTANT: Return "display_name", "description", and all quiz fields in ${LANG_NAMES[lang]}. Use clear, simple language that a school student can understand. Keep "concept" in English (it is used for search).`
     : 'Return "display_name", "description", and all quiz fields in English.';
 
   const prompt = `You are an educational concept detector for a real-time learning app.

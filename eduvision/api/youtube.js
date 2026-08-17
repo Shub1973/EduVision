@@ -21,6 +21,9 @@ function buildQuery(topic, subject, lang) {
   if (lang === "hi") {
     return `${context} हिंदी में explanation`;
   }
+  if (lang === "bn") {
+    return `${context} বাংলায় explanation class`;
+  }
   return `${context} explained educational for students`;
 }
 
@@ -73,7 +76,7 @@ module.exports = async function handler(req, res) {
       videoDuration: "medium",
       //Updated criteria - Upload Date:  Last month
       //publishedAfter: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), 
-      relevanceLanguage: lang === "hi" ? "hi" : "en",
+      relevanceLanguage: lang === "hi" ? "hi" : lang === "bn" ? "bn" : "en",
       key:        apiKey,
     });
 
