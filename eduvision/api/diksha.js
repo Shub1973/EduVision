@@ -116,6 +116,57 @@ function boardScore(item, hints) {
   return hints.some((h) => b.includes(h.toLowerCase())) ? 1 : 0;
 }
 
+// ─── Relevance filtering ───────────────────────────────────────────────────
+// DIKSHA's search endpoint does loose/fuzzy text matching rather than strict
+// topical relevance — a query like "lever" can return completely unrelated
+// content (nursery rhymes, listening-passage exercises) that merely shares
+// an incidental keyword or ranking signal. Before showing results, we
+// require each item to show some real connection to the requested
+// topic/subject: either its DIKSHA "subject" field matches the requested
+// subject, or its title actually contains one of the topic's words.
+const STOPWORDS = new Set([
+  "the", "and", "for", "with", "that", "this", "from", "class", "students",
+]);
+
+function tokenize(str) {
+  return String(str || "")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((t) => t.length > 2 && !STOPWORDS.has(t));
+}
+
+// Whole-word-prefix match between two tokens: catches simple plurals/suffixes
+// ("lever" ~ "levers", "magnet" ~ "magnetic") while still rejecting
+// substrings-of-a-different-word like "lever" inside "clever", because
+// "clever" does not *start with* "lever".
+function tokenMatches(a, b) {
+  return a === b || a.startsWith(b) || b.startsWith(a);
+}
+
+function isRelevant(item, topic, subject) {
+  const topicTokens = tokenize(topic);
+  const subjectTokens = tokenize(subject);
+  const itemSubjectTokens = tokenize(item.subject);
+  const itemTitleTokens = tokenize(item.title);
+
+  // Subject match: requested subject word appears as a whole word in the
+  // item's DIKSHA subject field.
+  if (subjectTokens.length && itemSubjectTokens.length) {
+    if (subjectTokens.some((t) => itemSubjectTokens.some((it) => tokenMatches(t, it)))) {
+      return true;
+    }
+  }
+
+  // Title match: at least one topic word appears as a whole word in the title.
+  if (topicTokens.length && itemTitleTokens.length) {
+    if (topicTokens.some((t) => itemTitleTokens.some((it) => tokenMatches(t, it)))) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 async function searchDiksha(query, medium, filtersVariant) {
   // DIKSHA/Sunbird index has used both "medium" and "se_mediums" facets
   // across versions — we try the classic one first, then the "se_" variant.
@@ -210,9 +261,30 @@ module.exports = async function handler(req, res) {
     if (!raw.length && subject) raw = await searchDiksha(topic, medium, "classic");
 
     const hints = LANG_TO_BOARD_HINT[lang];
-    const videos = raw
-      .map(normaliseItem)
-      .filter(Boolean)
+    let normalised = raw.map(normaliseItem).filter(Boolean);
+    let relevant = normalised.filter((v) => isRelevant(v, topic, subject));
+
+    // DIKSHA's search can return hits that are technically non-empty but
+    // all irrelevant (fuzzy text match on the combined "topic subject"
+    // query). If that happens and we haven't already tried the bare topic
+    // query, retry with topic alone before giving up.
+    if (!relevant.length && subject && query !== topic) {
+      const retryRaw = await searchDiksha(topic, medium, "classic");
+      const retryNormalised = retryRaw.map(normaliseItem).filter(Boolean);
+      const retryRelevant = retryNormalised.filter((v) => isRelevant(v, topic, subject));
+      if (retryRelevant.length) {
+        normalised = retryNormalised;
+        relevant = retryRelevant;
+      }
+    }
+
+    if (normalised.length && !relevant.length) {
+      console.warn(
+        `DIKSHA: dropped ${normalised.length} irrelevant result(s) for "${topic}" (${subject || "no subject"}) — falling back to YouTube.`
+      );
+    }
+
+    const videos = relevant
       .sort((a, b) => boardScore(b, hints) - boardScore(a, hints))
       .slice(0, 5);
 
@@ -220,7 +292,7 @@ module.exports = async function handler(req, res) {
       // 404 signals the frontend to fall back to the YouTube path.
       return res
         .status(404)
-        .json({ error: `No ${medium} videos found on DIKSHA for "${topic}".` });
+        .json({ error: `No relevant ${medium} videos found on DIKSHA for "${topic}".` });
     }
 
     cache.set(cacheKey, { videos, cachedAt: Date.now() });
