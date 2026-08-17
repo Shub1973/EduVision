@@ -43,6 +43,7 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
 .lang-btn { padding: 5px 12px; border-radius: 100px; border: none; background: transparent; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.72rem; cursor: pointer; transition: all 0.2s; color: var(--muted); }
 .lang-btn.active-en { background: var(--accent2); color: #000; }
 .lang-btn.active-hi { background: var(--hindi); color: #000; }
+.lang-btn.active-bn { background: #00f5a0; color: #000; }
 
 #cam-switch { background: rgba(255,255,255,0.1); border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.1rem; backdrop-filter: blur(8px); flex-shrink: 0; }
 #flash { position: absolute; inset: 0; background: white; opacity: 0; pointer-events: none; z-index: 20; transition: opacity 0.08s; }
@@ -76,6 +77,8 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
 :lang(hi) #lang-indicator { font-family: 'Space Grotesk', sans-serif; letter-spacing: 0; font-size: 0.82rem; }
 #lang-indicator.hi { background: rgba(255,153,51,0.08); color: var(--hindi); border-color: rgba(255,153,51,0.2); }
 #lang-indicator.en { background: rgba(0,200,245,0.06); color: var(--accent2); border-color: rgba(0,200,245,0.15); }
+#lang-indicator.bn { background: rgba(0,245,160,0.08); color: #00f5a0; border-color: rgba(0,245,160,0.2); }
+:lang(bn) #lang-indicator { font-family: 'Space Grotesk', sans-serif; letter-spacing: 0; font-size: 0.82rem; }
 #lang-indicator::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 
 /* ── GAMIFICATION ── */
@@ -145,6 +148,9 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
 @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 #yt-wrap { border-radius: 12px; overflow: hidden; position: relative; aspect-ratio: 16/9; width: 100%; background: #000; border: 1px solid var(--border); margin-bottom: 10px; }
 #yt-wrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
+#dk-video { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; display: none; }
+#video-attribution { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; color: var(--muted); margin-top: 4px; display: none; line-height: 1.5; }
+#video-attribution .dk-badge { display: inline-block; background: rgba(0,245,160,0.12); color: #00f5a0; border: 1px solid rgba(0,245,160,0.25); border-radius: 4px; padding: 1px 6px; margin-right: 6px; font-weight: 700; }
 #video-title-display { font-weight: 600; font-size: 0.85rem; color: var(--text); margin-bottom: 2px; }
 #video-channel-display { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--muted); }
 #alt-section { padding: 12px 16px 0; }
@@ -193,6 +199,7 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
       <div id="lang-toggle">
         <button class="lang-btn active-en" id="btn-en" onclick="setLang('en')">EN</button>
         <button class="lang-btn" id="btn-hi" onclick="setLang('hi')">हिंदी</button>
+        <button class="lang-btn" id="btn-bn" onclick="setLang('bn')">বাংলা</button>
       </div>
       <button id="cam-switch" onclick="switchCamera()">🔄</button>
     </div>
@@ -251,9 +258,10 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
         </div>
         <div id="video-section">
           <div id="video-label"></div>
-          <div id="yt-wrap"><iframe id="yt-iframe" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture"></iframe></div>
+          <div id="yt-wrap"><iframe id="yt-iframe" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture"></iframe><video id="dk-video" controls playsinline preload="metadata"></video></div>
           <div id="video-title-display"></div>
           <div id="video-channel-display"></div>
+          <div id="video-attribution"></div>
         </div>
         <div id="alt-section">
           <div class="alt-row-label"></div>
@@ -373,6 +381,40 @@ const i18n = {
     ytFailed:            'YouTube खोज विफल',
     ytNotFound:          'कोई वीडियो नहीं मिला',
     ytVideoFailed:       '❌ वीडियो खोज विफल: ',
+  },
+  bn: {
+    modeBadgeReady:      'প্রস্তুত',
+    modeBadgeScanning:   'স্ক্যান হচ্ছে…',
+    modeBadgeFound:      'পাওয়া গেছে!',
+    snapBtn:             '📸 স্ন্যাপ',
+    idleText:            'ক্যামেরা কোনো শিক্ষামূলক\nবস্তুর দিকে ধরুন\nএবং স্ন্যাপ চাপুন',
+    scanningText:        'AI দিয়ে বিশ্লেষণ হচ্ছে…',
+    videoLabel:          'এখন চলছে',
+    altRowLabel:         'এই বিষয়ে আরও ভিডিও',
+    camOffLabel:         'ক্যামেরা বন্ধ আছে',
+    scanAgainBtn:        '🔍 আবার স্ক্যান করুন',
+    camErrorMsg:         'ক্যামেরার অনুমতি পাওয়া যায়নি।\nঅনুমতি দিয়ে পেজ রিফ্রেশ করুন।',
+    installBtn:          '📲 CurioX ইনস্টল করুন',
+    toastFrontCam:       'সামনের ক্যামেরা',
+    toastRearCam:        'পেছনের ক্যামেরা',
+    toastRateLimit:      '⏱ অনুরোধের সীমা পার — একটু অপেক্ষা করুন',
+    toastNotRecognized:  '🤔 বস্তুটি চেনা যায়নি',
+    toastSameConcept:    '📌 একই বিষয় — ভিডিও চলছে',
+    toastDetected:       '✅ {name} শনাক্ত হয়েছে!',
+    toastHindi:          '🇮🇳 হিন্দি ভিডিও',
+    toastEnglish:        '🇬🇧 English Videos',
+    toastBengali:        '🇮🇳 বাংলা ভিডিও',
+    notRecognizedName:   'অজানা বস্তু!',
+    notRecognizedSubj:   'চেনা যায়নি',
+    notRecognizedDesc:   'এই বস্তুটি চেনা যায়নি। এখানে আপনার জন্য একটি মজার ভিডিও আছে!',
+    langIndicator:       'বাংলা ভিডিও চলছে',
+    ytLoading:           'ভিডিও খোঁজা হচ্ছে…',
+    ytVideosLoading:     'ভিডিও লোড হচ্ছে…',
+    ytFailed:            'ভিডিও খোঁজা ব্যর্থ হয়েছে',
+    ytNotFound:          'কোনো ভিডিও পাওয়া যায়নি',
+    ytVideoFailed:       '❌ ভিডিও খোঁজা ব্যর্থ: ',
+    dkSearching:         'DIKSHA-তে খোঁজা হচ্ছে…',
+    dkSource:            'সূত্র',
   }
 };
 
@@ -397,8 +439,10 @@ function setLang(lang) {
   localStorage.setItem('cx_lang', lang);
   const btnEn = document.getElementById('btn-en');
   const btnHi = document.getElementById('btn-hi');
+  const btnBn = document.getElementById('btn-bn');
   btnEn.className = 'lang-btn' + (lang === 'en' ? ' active-en' : '');
   btnHi.className = 'lang-btn' + (lang === 'hi' ? ' active-hi' : '');
+  if (btnBn) btnBn.className = 'lang-btn' + (lang === 'bn' ? ' active-bn' : '');
   applyUITranslations();
   updateLangIndicator();
 
@@ -409,10 +453,10 @@ function setLang(lang) {
       document.getElementById('concept-subject').textContent = _t('notRecognizedSubj');
       document.getElementById('concept-desc').textContent    = _t('notRecognizedDesc');
       document.getElementById('lang-indicator').textContent  = _t('langIndicator');
-      document.getElementById('lang-indicator').className    = lang === 'hi' ? 'hi' : 'en';
+      document.getElementById('lang-indicator').className    = lang;
     } else if (currentVideoSet) {
       loadVideos(currentVideoSet, false);
-      toast(lang === 'hi' ? _t('toastHindi') : _t('toastEnglish'));
+      toast(lang === 'hi' ? _t('toastHindi') : lang === 'bn' ? _t('toastBengali') : _t('toastEnglish'));
     }
   }
   // Re-render gamification strip in new language
@@ -420,8 +464,8 @@ function setLang(lang) {
 }
 
 function applyUITranslations() {
-  // Set lang attribute FIRST so :lang(hi) CSS activates immediately
-  document.documentElement.lang = currentLang === 'hi' ? 'hi' : 'en';
+  // Set lang attribute FIRST so :lang(hi) / :lang(bn) CSS activates immediately
+  document.documentElement.lang = currentLang;
 
   // Safe setter helpers — never crash on missing elements
   function setText(id, key) {
@@ -462,60 +506,108 @@ function applyUITranslations() {
 function updateLangIndicator() {
   const el = document.getElementById('lang-indicator');
   el.textContent = _t('langIndicator');
-  el.className = currentLang === 'hi' ? 'hi' : 'en';
+  el.className = currentLang;
 }
 
-// ── DYNAMIC VIDEO LOADER via YouTube Data API ──────────────────────────────
+// ── DYNAMIC VIDEO LOADER — DIKSHA first (regional languages), YouTube fallback
+// Languages whose videos are retrieved from DIKSHA (state SCERT content,
+// streamed from source with attribution — never downloaded or re-hosted).
+const DIKSHA_LANGS = ['bn'];
+
 async function loadVideos(topic, autoplay = false) {
   currentVideoSet = topic;
 
   // Show loading state
   document.getElementById('yt-iframe').src = '';
-  document.getElementById('video-title-display').textContent = _t('ytLoading');
+  stopDkVideo();
+  document.getElementById('video-title-display').textContent =
+    DIKSHA_LANGS.includes(currentLang) ? (_t('dkSearching')) : _t('ytLoading');
   document.getElementById('video-channel-display').textContent = '';
+  document.getElementById('video-attribution').style.display = 'none';
   document.getElementById('alt-row').innerHTML = `<div style="color:var(--muted);font-family:JetBrains Mono,monospace;font-size:0.7rem;padding:8px">${_t('ytVideosLoading')}</div>`;
 
   try {
-    const res = await fetch(`/api/youtube?topic=${encodeURIComponent(topic)}&subject=${encodeURIComponent(currentSubject||'')}&lang=${currentLang}`);
+    let videos = null;
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || _t('ytFailed'));
+    // 1 · DIKSHA retrieval layer (regional languages)
+    if (DIKSHA_LANGS.includes(currentLang)) {
+      try {
+        const dkRes = await fetch(`/api/diksha?topic=${encodeURIComponent(topic)}&subject=${encodeURIComponent(currentSubject||'')}&lang=${currentLang}`);
+        if (dkRes.ok) {
+          const dkData = await dkRes.json();
+          if (dkData.videos && dkData.videos.length) videos = dkData.videos;
+        }
+      } catch(_) { /* network error → fall through to YouTube */ }
     }
 
-    const data = await res.json();
-    const videos = data.videos;
+    // 2 · YouTube fallback (and the default path for en/hi)
+    if (!videos) {
+      const res = await fetch(`/api/youtube?topic=${encodeURIComponent(topic)}&subject=${encodeURIComponent(currentSubject||'')}&lang=${currentLang}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || _t('ytFailed'));
+      }
+      const data = await res.json();
+      videos = data.videos;
+    }
 
     if (!videos || videos.length === 0) {
       throw new Error(_t('ytNotFound'));
     }
 
-    // Play primary video — simple iframe.src (reliable cross-device)
-    // enablejsapi=1 allows postMessage end-detection without YT.Player
-    const primary = videos[0];
-    setYTVideo(primary.id, autoplay);
-    document.getElementById('video-title-display').textContent = primary.title;
-    document.getElementById('video-channel-display').textContent = '▶ ' + primary.channel;
-
-    // Show alternate videos
-    const altRow = document.getElementById('alt-row');
-    altRow.innerHTML = '';
-    videos.slice(1).forEach(v => {
-      const chip = document.createElement('div'); chip.className = 'alt-chip';
-      chip.innerHTML = `<img src="${v.thumb}" loading="lazy"/><div class="alt-chip-label">${v.title}</div>`;
-      chip.onclick = () => {
-        hideQuiz();
-        setYTVideo(v.id, true);
-        document.getElementById('video-title-display').textContent = v.title;
-        document.getElementById('video-channel-display').textContent = '▶ ' + v.channel;
-      };
-      altRow.appendChild(chip);
-    });
+    renderVideoList(videos, autoplay);
 
   } catch(err) {
     document.getElementById('video-title-display').textContent = '⚠️ ' + err.message;
     document.getElementById('alt-row').innerHTML = '';
     toast(_t('ytVideoFailed') + err.message);
+  }
+}
+
+// Renders a list of videos — items are either YouTube search results
+// ({id,title,channel,thumb}) or normalised DIKSHA items
+// ({kind,id,url,title,source,license,board,thumb}).
+function renderVideoList(videos, autoplay) {
+  const primary = videos[0];
+  playVideoItem(primary, autoplay);
+
+  const altRow = document.getElementById('alt-row');
+  altRow.innerHTML = '';
+  videos.slice(1).forEach(v => {
+    const chip = document.createElement('div'); chip.className = 'alt-chip';
+    const thumb = v.thumb || (v.id ? `https://img.youtube.com/vi/${v.id}/mqdefault.jpg` : '');
+    chip.innerHTML = `${thumb ? `<img src="${thumb}" loading="lazy"/>` : ''}<div class="alt-chip-label">${v.title}</div>`;
+    chip.onclick = () => { hideQuiz(); playVideoItem(v, true); };
+    altRow.appendChild(chip);
+  });
+}
+
+// Plays one video item (DIKSHA mp4, DIKSHA-YouTube, or plain YouTube)
+// and updates title / channel / attribution lines.
+function playVideoItem(v, autoplay) {
+  const isDiksha = !!v.kind; // DIKSHA items carry a "kind"; YouTube results don't
+
+  if (v.kind === 'mp4') {
+    setDikshaVideo(v.url, autoplay);
+  } else {
+    setYTVideo(v.id, autoplay);
+  }
+
+  document.getElementById('video-title-display').textContent = v.title;
+  document.getElementById('video-channel-display').textContent =
+    '▶ ' + (v.channel || v.source || 'DIKSHA');
+
+  // Attribution — required for CC-licensed DIKSHA content
+  const attr = document.getElementById('video-attribution');
+  if (isDiksha) {
+    const parts = [];
+    if (v.source) parts.push(v.source);
+    if (v.board)  parts.push(v.board);
+    if (v.license) parts.push(v.license);
+    attr.innerHTML = `<span class="dk-badge">DIKSHA</span>${parts.join(' · ')}`;
+    attr.style.display = 'block';
+  } else {
+    attr.style.display = 'none';
   }
 }
 
@@ -549,6 +641,8 @@ async function resumeCamera() {
   document.getElementById('idle-hint').style.display = 'flex';
   document.getElementById('result-card').style.display = 'none';
   document.getElementById('yt-iframe').src = '';
+  stopDkVideo();
+  document.getElementById('video-attribution').style.display = 'none';
   await startCamera();
 }
 
@@ -597,7 +691,7 @@ async function analyzeFrame(base64) {
   document.getElementById('concept-desc').textContent=_t('notRecognizedDesc');
   document.getElementById('topics-row').innerHTML='';
   document.getElementById('lang-indicator').textContent=_t('langIndicator');
-  document.getElementById('lang-indicator').className=currentLang==='hi'?'hi':'en';
+  document.getElementById('lang-indicator').className=currentLang;
   document.getElementById('video-title-display').textContent='Science and Fun';
   document.getElementById('video-channel-display').textContent='▶ Science and Fun Motivation';
   document.getElementById('alt-row').innerHTML='';
@@ -677,14 +771,18 @@ function showResult(data){
 // All data stored in localStorage. Zero server cost.
 // ══════════════════════════════════════════════════════════════
 const LEVELS = [
-  { name:'Rookie',       nameHi:'नौसिखिया',    xp:0   },
-  { name:'Explorer',     nameHi:'खोजकर्ता',    xp:100 },
-  { name:'Investigator', nameHi:'जासूस',        xp:250 },
-  { name:'Scientist',    nameHi:'वैज्ञानिक',   xp:500 },
-  { name:'Scholar',      nameHi:'विद्वान',      xp:850 },
-  { name:'Genius',       nameHi:'प्रतिभाशाली', xp:1300},
-  { name:'Einstein',     nameHi:'आइंस्टीन',    xp:2000},
+  { name:'Rookie',       nameHi:'नौसिखिया',    nameBn:'নবিশ',        xp:0   },
+  { name:'Explorer',     nameHi:'खोजकर्ता',    nameBn:'অভিযাত্রী',   xp:100 },
+  { name:'Investigator', nameHi:'जासूस',        nameBn:'অনুসন্ধানী',  xp:250 },
+  { name:'Scientist',    nameHi:'वैज्ञानिक',   nameBn:'বিজ্ঞানী',    xp:500 },
+  { name:'Scholar',      nameHi:'विद्वान',      nameBn:'পণ্ডিত',      xp:850 },
+  { name:'Genius',       nameHi:'प्रतिभाशाली', nameBn:'প্রতিভাবান',  xp:1300},
+  { name:'Einstein',     nameHi:'आइंस्टीन',    nameBn:'আইনস্টাইন',   xp:2000},
 ];
+
+function levelName(lvl) {
+  return currentLang === 'hi' ? lvl.nameHi : currentLang === 'bn' ? (lvl.nameBn || lvl.name) : lvl.name;
+}
 
 function gamLoad() {
   return {
@@ -716,13 +814,13 @@ function gamRender() {
   const xpInLevel = g.xp - lvl.xp;
   const xpNeeded  = nextLvl ? nextLvl.xp - lvl.xp : 1;
   const pct       = nextLvl ? Math.min(100, Math.round(xpInLevel / xpNeeded * 100)) : 100;
-  const levelName = currentLang === 'hi' ? lvl.nameHi : lvl.name;
+  const lvlDisplayName = levelName(lvl);
 
-  document.getElementById('level-badge').textContent   = (currentLang === 'hi' ? 'स्तर ' : 'LVL ') + (lvlIdx + 1);
-  document.getElementById('xp-level-name').textContent = levelName;
+  document.getElementById('level-badge').textContent   = (currentLang === 'hi' ? 'स्तर ' : currentLang === 'bn' ? 'স্তর ' : 'LVL ') + (lvlIdx + 1);
+  document.getElementById('xp-level-name').textContent = lvlDisplayName;
   document.getElementById('xp-counter').textContent    = nextLvl
     ? g.xp + ' / ' + nextLvl.xp + ' XP'
-    : (currentLang === 'hi' ? 'अधिकतम स्तर!' : 'MAX LEVEL!');
+    : (currentLang === 'hi' ? 'अधिकतम स्तर!' : currentLang === 'bn' ? 'সর্বোচ্চ স্তর!' : 'MAX LEVEL!');
   document.getElementById('xp-bar-fill').style.width   = pct + '%';
   document.getElementById('streak-badge').textContent  = '🔥 ' + g.streak;
   document.getElementById('disco-badge').textContent   = '🔭 ' + g.discoveries.length;
@@ -736,7 +834,7 @@ function gamUpdateStreak() {
   g.streak   = (g.lastDate === yesterday) ? g.streak + 1 : 1;
   g.lastDate = today;
   gamSave(g);
-  if (g.streak > 1) toast('🔥 ' + g.streak + (currentLang === 'hi' ? ' दिन की streak!' : '-day streak!'));
+  if (g.streak > 1) toast('🔥 ' + g.streak + (currentLang === 'hi' ? ' दिन की streak!' : currentLang === 'bn' ? ' দিনের streak!' : '-day streak!'));
 }
 
 function gamAwardXP(concept, confidence) {
@@ -751,7 +849,7 @@ function gamAwardXP(concept, confidence) {
   if (isNew) {
     g.discoveries.push(concept);
     xpGain += 30;
-    toast('🔭 ' + (currentLang === 'hi' ? 'नई खोज! +' : 'New discovery! +') + xpGain + ' XP');
+    toast('🔭 ' + (currentLang === 'hi' ? 'नई खोज! +' : currentLang === 'bn' ? 'নতুন আবিষ্কার! +' : 'New discovery! +') + xpGain + ' XP');
   }
 
   g.xp += xpGain;
@@ -765,9 +863,9 @@ function gamAwardXP(concept, confidence) {
   const newLvlIdx = getLevelIndex(g.xp);
   if (newLvlIdx > oldLvlIdx) {
     const newLvl  = LEVELS[newLvlIdx];
-    const lvlName = currentLang === 'hi' ? newLvl.nameHi : newLvl.name;
-    document.getElementById('lu-title').textContent = currentLang === 'hi' ? 'नया स्तर!' : 'LEVEL UP!';
-    document.getElementById('lu-sub').textContent   = (currentLang === 'hi' ? 'अब आप हैं: ' : 'You are now: ') + lvlName;
+    const lvlName = levelName(newLvl);
+    document.getElementById('lu-title').textContent = currentLang === 'hi' ? 'नया स्तर!' : currentLang === 'bn' ? 'নতুন স্তর!' : 'LEVEL UP!';
+    document.getElementById('lu-sub').textContent   = (currentLang === 'hi' ? 'अब आप हैं: ' : currentLang === 'bn' ? 'আপনি এখন: ' : 'You are now: ') + lvlName;
     const lt = document.getElementById('levelup-toast');
     lt.classList.add('show');
     setTimeout(() => lt.classList.remove('show'), 2800);
@@ -784,9 +882,33 @@ function gamAwardXP(concept, confidence) {
 // ══════════════════════════════════════════════════════════════
 let quizState = { active:false, correctIndex:-1, attempts:0, xpAmount:0, concept:'', confidence:0 };
 
+// ── DIKSHA HTML5 video player (streams from DIKSHA CDN — never downloaded) ──
+function setDikshaVideo(url, autoplay) {
+  hideQuiz();
+  const dkv    = document.getElementById('dk-video');
+  const iframe = document.getElementById('yt-iframe');
+  iframe.src = '';                    // stop any YouTube playback
+  iframe.style.display = 'none';
+  dkv.style.display = 'block';
+  dkv.src = url;
+  dkv.onended = onVideoEnded;         // same quiz trigger as YouTube end
+  if (autoplay) dkv.play().catch(()=>{}); // autoplay may be blocked — controls shown
+}
+
+function stopDkVideo() {
+  const dkv = document.getElementById('dk-video');
+  if (!dkv) return;
+  dkv.pause();
+  dkv.removeAttribute('src');
+  dkv.load();
+  dkv.style.display = 'none';
+  document.getElementById('yt-iframe').style.display = '';
+}
+
 // Simple video setter — keeps existing iframe element intact (no DOM replacement)
 function setYTVideo(videoId, autoplay) {
   hideQuiz();
+  stopDkVideo();
   const iframe = document.getElementById('yt-iframe');
   iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=${autoplay?1:0}&rel=0&modestbranding=1&enablejsapi=1&origin=${encodeURIComponent(location.origin)}`;
 
@@ -830,9 +952,12 @@ function showQuizTrigger(data) {
   if (!data || !data.quiz_question) return;
   const wrap = document.getElementById('quiz-trigger-wrap');
   const btn  = document.getElementById('quiz-trigger-btn');
+  const xp = computeXP(data.concept, data.confidence);
   btn.textContent = currentLang === 'hi'
-    ? '🧠 क्विज़ लें  +' + computeXP(data.concept, data.confidence) + ' XP'
-    : '🧠 Take Quiz  +' + computeXP(data.concept, data.confidence) + ' XP';
+    ? '🧠 क्विज़ लें  +' + xp + ' XP'
+    : currentLang === 'bn'
+    ? '🧠 কুইজ দিন  +' + xp + ' XP'
+    : '🧠 Take Quiz  +' + xp + ' XP';
   wrap.style.display = 'block';
 }
 
@@ -865,7 +990,7 @@ function showQuiz(data) {
   };
 
   document.getElementById('quiz-title').textContent =
-    currentLang === 'hi' ? '🧠 झटपट प्रश्न' : '🧠 Quick Quiz';
+    currentLang === 'hi' ? '🧠 झटपट प्रश्न' : currentLang === 'bn' ? '🧠 চটজলদি প্রশ্ন' : '🧠 Quick Quiz';
   document.getElementById('quiz-xp-hint').textContent =
     '+' + quizState.xpAmount + ' XP';
   document.getElementById('quiz-question').textContent = q.question;
@@ -904,6 +1029,8 @@ function handleQuizAnswer(selectedIndex) {
     if (quizState.attempts === 1) {
       fb.textContent = currentLang === 'hi'
         ? `🎉 सही जवाब! +${quizState.xpAmount} XP मिले!`
+        : currentLang === 'bn'
+        ? `🎉 সঠিক উত্তর! +${quizState.xpAmount} XP পেলেন!`
         : `🎉 Correct! +${quizState.xpAmount} XP earned!`;
       fb.className = 'correct';
       gamAwardXP(quizState.concept, quizState.confidence);
@@ -911,6 +1038,8 @@ function handleQuizAnswer(selectedIndex) {
       const halfXP = Math.floor(quizState.xpAmount / 2);
       fb.textContent = currentLang === 'hi'
         ? `✅ सही! दूसरी कोशिश में। +${halfXP} XP`
+        : currentLang === 'bn'
+        ? `✅ সঠিক! দ্বিতীয় চেষ্টায়। +${halfXP} XP`
         : `✅ Correct on second try! +${halfXP} XP`;
       fb.className = 'correct';
       gamAwardXP(quizState.concept, 0.5);
@@ -921,6 +1050,8 @@ function handleQuizAnswer(selectedIndex) {
     if (quizState.attempts < 2) {
       fb.textContent = currentLang === 'hi'
         ? '❌ गलत! एक और मौका…'
+        : currentLang === 'bn'
+        ? '❌ ভুল! আর একটা সুযোগ…'
         : '❌ Wrong! One more try…';
       fb.className = 'wrong';
     } else {
@@ -931,6 +1062,8 @@ function handleQuizAnswer(selectedIndex) {
       });
       fb.textContent = currentLang === 'hi'
         ? '😔 कोई XP नहीं। सही जवाब ऊपर दिखाया गया है।'
+        : currentLang === 'bn'
+        ? '😔 এবার কোনো XP নয়। সঠিক উত্তরটি চিহ্নিত করা আছে।'
         : '😔 No XP this time. The correct answer is highlighted.';
       fb.className = 'no-xp';
     }
