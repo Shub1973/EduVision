@@ -659,12 +659,22 @@ async function captureNow() {
   if (!vid.videoWidth) return;
   const flash = document.getElementById('flash');
   flash.classList.add('pop'); setTimeout(()=>flash.classList.remove('pop'),120);
+  // ── Cost control: cap the uploaded frame's long edge ──────────────────
+  // Anthropic bills images at ceil(w/28) * ceil(h/28) tokens. A native 1280x720
+  // frame costs 1,196 image tokens; 896x504 costs 576 and lands exactly on the
+  // 28px patch grid, so no partial patches are wasted. Lower MAX_EDGE further
+  // (768 -> 448 tokens, 640 -> 299) if recognition accuracy still holds up.
+  const MAX_EDGE = 896;
+  const sw = vid.videoWidth, sh = vid.videoHeight;
+  const scale = Math.min(1, MAX_EDGE / Math.max(sw, sh));   // never upscale
+  const dw = Math.round(sw * scale), dh = Math.round(sh * scale);
+
   const canvas = document.getElementById('canvas-hidden');
-  canvas.width=vid.videoWidth; canvas.height=vid.videoHeight;
-  const ctx=canvas.getContext('2d');
-  if (facingMode==='user'){ctx.translate(canvas.width,0);ctx.scale(-1,1);}
-  ctx.drawImage(vid,0,0);
-  await analyzeFrame(canvas.toDataURL('image/jpeg',0.75).split(',')[1]);
+  canvas.width = dw; canvas.height = dh;
+  const ctx = canvas.getContext('2d');
+  if (facingMode === 'user') { ctx.translate(dw, 0); ctx.scale(-1, 1); }
+  ctx.drawImage(vid, 0, 0, sw, sh, 0, 0, dw, dh);
+  await analyzeFrame(canvas.toDataURL('image/jpeg', 0.75).split(',')[1]);
 }
 
 async function analyzeFrame(base64) {

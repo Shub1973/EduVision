@@ -1,4 +1,4 @@
-const CACHE_NAME = "curiox-cache-v27";
+const CACHE_NAME = "curiox-cache-v28";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
