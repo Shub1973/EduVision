@@ -1,3 +1,7 @@
 GIT Commands.txt
 eduvision/Claude outputs/
 eduvision/CurioX Codebase Reference.docx
+eduvision/node_modules/
+R2 Values.txt
+*.env
+.env*

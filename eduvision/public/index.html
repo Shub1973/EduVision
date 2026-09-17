@@ -514,7 +514,7 @@ function updateLangIndicator() {
 // streamed from source with attribution — never downloaded or re-hosted).
 const DIKSHA_LANGS = ['bn'];
 
-async function loadVideos(topic, autoplay = false) {
+async function loadVideos(topic, autoplay = false, scanId = null) {
   currentVideoSet = topic;
 
   // Show loading state
@@ -532,7 +532,7 @@ async function loadVideos(topic, autoplay = false) {
     // 1 · DIKSHA retrieval layer (regional languages)
     if (DIKSHA_LANGS.includes(currentLang)) {
       try {
-        const dkRes = await fetch(`/api/diksha?topic=${encodeURIComponent(topic)}&subject=${encodeURIComponent(currentSubject||'')}&lang=${currentLang}`);
+        const dkRes = await fetch(`/api/diksha?topic=${encodeURIComponent(topic)}&subject=${encodeURIComponent(currentSubject||'')}&lang=${currentLang}&scan_id=${encodeURIComponent(scanId||'')}`);
         if (dkRes.ok) {
           const dkData = await dkRes.json();
           if (dkData.videos && dkData.videos.length) videos = dkData.videos;
@@ -682,7 +682,9 @@ async function analyzeFrame(base64) {
   const vf=document.getElementById('viewfinder');
   vf.classList.add('locked');
   try {
-    const res = await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageBase64:base64,mediaType:'image/jpeg',lang:currentLang})});
+    const scanId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('scan_'+Date.now()+'_'+Math.random().toString(36).slice(2));
+    window._lastScanId = scanId;
+    const res = await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageBase64:base64,mediaType:'image/jpeg',lang:currentLang,scan_id:scanId})});
     if(res.status===429){toast(_t('toastRateLimit'));return;}
     if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error||'Server error');}
     const parsed=await res.json();
@@ -762,7 +764,7 @@ function showResult(data){
   updateLangIndicator();
 
   // Pass the concept string — YouTube API will search for it dynamically
-  loadVideos(displayName, true);
+  loadVideos(displayName, true, window._lastScanId);
 
   document.getElementById('idle-hint').style.display='none';
   document.getElementById('scanning-state').style.display='none';

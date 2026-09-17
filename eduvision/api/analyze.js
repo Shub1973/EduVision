@@ -5,6 +5,7 @@
 
 const Anthropic = require("@anthropic-ai/sdk");
 const crypto = require("crypto");
+const { logScan } = require("./_lib/scanLogger");
 
 // ─── In-memory rate limiter ───────────────────────────────────────────────────
 // Vercel functions are stateless, so this resets per cold start.
@@ -76,7 +77,7 @@ module.exports = async function handler(req, res) {
   }
 
   // Validate request body
-  const { imageBase64, mediaType = "image/jpeg", lang = "en" } = req.body || {};
+  const { imageBase64, mediaType = "image/jpeg", lang = "en", scan_id } = req.body || {};
 
   if (!imageBase64) {
     return res.status(400).json({ error: "Missing imageBase64 field" });
@@ -221,6 +222,19 @@ If there is no clear educational content (blank wall, random clutter, a person's
 
       q.options = indexed.map((o) => o.text);
       q.answer_index = indexed.findIndex((o) => o.correct);
+    }
+
+    // Scan/event logging — see curiox-codebase-reference.md, "Scan/event
+    // logging" section, for the design this implements. Synchronous
+    // (awaited) on purpose: Vercel Node serverless functions can be frozen
+    // right after the response is sent, so a fire-and-forget write here
+    // risks silently losing the row. Wrapped so a logging failure never
+    // turns into a failed scan for the child.
+    const scanId = scan_id || crypto.randomUUID();
+    try {
+      await logScan({ scanId, lang, imageBase64, mediaType, parsed });
+    } catch (e) {
+      console.error("SCAN_LOG_FAILED", e.message);
     }
 
     return res.status(200).json(parsed);

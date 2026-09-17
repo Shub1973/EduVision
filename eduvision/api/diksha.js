@@ -50,6 +50,19 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
+const { logDikshaResult } = require("./_lib/scanLogger");
+
+// hit-vs-fallback logging (see curiox-codebase-reference.md, "instrumentation
+// gap" section). Wrapped locally so a logging failure never turns into a
+// 502 for what would otherwise be a working DIKSHA/YouTube lookup.
+async function safeLogDiksha(scanId, hit) {
+  try {
+    await logDikshaResult(scanId, hit);
+  } catch (e) {
+    console.error("DIKSHA_LOG_FAILED", e.message);
+  }
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function youTubeIdFrom(url) {
   if (!url) return null;
@@ -232,7 +245,7 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { topic, subject = "", lang = "bn" } = req.query;
+  const { topic, subject = "", lang = "bn", scan_id } = req.query;
   if (!topic) {
     return res.status(400).json({ error: "Missing topic parameter" });
   }
@@ -247,6 +260,7 @@ module.exports = async function handler(req, res) {
   const cacheKey = `${topic.toLowerCase()}__${subject.toLowerCase()}__${lang}`;
   const cached = cache.get(cacheKey);
   if (cached && Date.now() - cached.cachedAt < CACHE_TTL) {
+    await safeLogDiksha(scan_id, true);
     return res.status(200).json({ videos: cached.videos, source: "cache" });
   }
 
@@ -290,15 +304,18 @@ module.exports = async function handler(req, res) {
 
     if (!videos.length) {
       // 404 signals the frontend to fall back to the YouTube path.
+      await safeLogDiksha(scan_id, false);
       return res
         .status(404)
         .json({ error: `No relevant ${medium} videos found on DIKSHA for "${topic}".` });
     }
 
     cache.set(cacheKey, { videos, cachedAt: Date.now() });
+    await safeLogDiksha(scan_id, true);
     return res.status(200).json({ videos, source: "diksha" });
   } catch (err) {
     console.error("DIKSHA API error:", err.message);
+    await safeLogDiksha(scan_id, false);
     // 502 (not 500) → frontend treats any non-ok as "fall back to YouTube".
     return res
       .status(502)
