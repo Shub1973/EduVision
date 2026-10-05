@@ -167,9 +167,11 @@ If there is no clear educational content (blank wall, random clutter, a person's
 
   const prompt = process.env.PROMPT_VERSION === "v1" ? PROMPT_V1 : PROMPT_V2;
 
+  const tStart = Date.now();
   try {
     const message = await client.messages.create({
-      model:      "claude-sonnet-5",
+      // model:      "claude-sonnet-5",  // original - restore after Haiku 4.5 feasibility test
+      model:      "claude-haiku-4-5-20251001",  // Haiku 4.5 feasibility test (Oct 2026)
       max_tokens: 800,
       messages: [
         {
@@ -185,6 +187,12 @@ If there is no clear educational content (blank wall, random clutter, a person's
       ],
     });
 
+    // ── Latency measurement (Haiku 4.5 feasibility test) ───────────────────
+    // aiMs = time spent in the Anthropic call only (the number the 3s budget
+    // applies to). Cold starts add extra time to the first request after idle,
+    // so judge on the median of several warm scans, not on a single reading.
+    const aiMs = Date.now() - tStart;
+    const LATENCY_BUDGET_MS = 3000;
     const raw   = message.content.map((b) => b.text || "").join("").trim();
     const clean = raw.replace(/```json|```/g, "").trim();
 
@@ -237,6 +245,25 @@ If there is no clear educational content (blank wall, random clutter, a person's
       console.error("SCAN_LOG_FAILED", e.message);
     }
 
+    // totalMs also includes the R2 + Neon logging writes above.
+    const totalMs = Date.now() - tStart;
+    const latencyInfo = {
+      model:      message.model,
+      lang,
+      ai_ms:      aiMs,
+      total_ms:   totalMs,
+      in_tokens:  message.usage && message.usage.input_tokens,
+      out_tokens: message.usage && message.usage.output_tokens,
+      over_3s:    aiMs > LATENCY_BUDGET_MS,
+    };
+    // Grep Vercel logs for AI_LATENCY; slow ones are also logged as warnings
+    // so the Warning filter in the Logs tab isolates them.
+    console.log("AI_LATENCY " + JSON.stringify(latencyInfo));
+    if (aiMs > LATENCY_BUDGET_MS) {
+      console.warn("AI_LATENCY_SLOW " + JSON.stringify(latencyInfo));
+    }
+    // Also visible in the browser: DevTools > Network > /api/analyze > Headers.
+    res.setHeader("X-AI-Latency-Ms", String(aiMs));
     return res.status(200).json(parsed);
 
   } catch (err) {
