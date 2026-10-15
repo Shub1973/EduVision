@@ -7,6 +7,21 @@ const Anthropic = require("@anthropic-ai/sdk");
 const crypto = require("crypto");
 const { logScan } = require("./_lib/scanLogger");
 
+// ─── Model ────────────────────────────────────────────────────────────────────
+// Chosen 15 Oct 2026 from a 35-photo replay: Haiku 5.5 answered in a median of
+// 2.0 s against 3.9 s for Sonnet 5, was at least as accurate, and costs about
+// 1/22 as much per scan.
+//
+// Haiku 5.5 MUST run with thinking off and effort low (set where the request is
+// built, further down). Its defaults think before answering, and thinking tokens
+// count against max_tokens: with the defaults about 1 in 4 replies were cut off
+// mid-JSON and most scans took over 3 s. Never swap in the model name alone.
+//
+// FALLBACK: to go back to Sonnet 5, comment out the Haiku line and uncomment the
+// Sonnet line. The Haiku-only settings are skipped automatically for Sonnet.
+const MODEL = "claude-haiku-5-5";
+// const MODEL = "claude-sonnet-5";   // fallback: what CurioX launched on
+
 // ─── In-memory rate limiter ───────────────────────────────────────────────────
 // Vercel functions are stateless, so this resets per cold start.
 // For persistent rate limiting across instances, swap this for
@@ -101,7 +116,8 @@ module.exports = async function handler(req, res) {
 
   // ─── Prompt versions ──────────────────────────────────────────────────────
   // V1 is the original (~868 input tokens). V2 is trimmed (~300) and adds
-  // explicit output-length caps.
+  // explicit output-length caps. V3 (the default since 15 Oct 2026) is the
+  // prompt tested with Haiku 5.5, plus tougher-but-fair quiz distractors.
   //
   // Why: after capping the uploaded image at 896x504, OUTPUT tokens were
   // 55-61% of the cost of a scan (360 tok English / 463 Hindi at $10/MTok,
@@ -112,8 +128,9 @@ module.exports = async function handler(req, res) {
   // minimum to cache and this prompt is below it, so cache_control would be
   // silently ignored. (Haiku 4.5's minimum is 4,096 - further out of reach.)
   //
-  // Set PROMPT_VERSION=v1 in the Vercel env to fall back without a code deploy.
-  // Delete V1 once V2 is confirmed good in the field.
+  // Set PROMPT_VERSION=v1 or v2 in the Vercel env to fall back (then redeploy so
+  // the new value is picked up). Delete V1 and V2 once V3 is confirmed good in
+  // the field.
   const PROMPT_V1 = `You are an educational concept detector for a real-time learning app.
 Look at this camera frame and identify the most prominent educational concept visible.
 This could be a physical object (lever, pulley, magnet, drawing compass), a diagram (fraction bar, cell diagram, circuit), text on a board, or a recognisable scene.
@@ -165,13 +182,70 @@ QUIZ RULES:
 
 If there is no clear educational content (blank wall, random clutter, a person's face): set has_educational_content false, confidence below 0.4, and quiz_question null.`;
 
-  const prompt = process.env.PROMPT_VERSION === "v1" ? PROMPT_V1 : PROMPT_V2;
+  // ─── Prompt V3 ────────────────────────────────────────────────────────────
+  // This is the "v3.2" prompt from the 15 Oct 2026 replay (broad range of
+  // subjects, short Hindi/Bengali output, stable concept keys, "name only what
+  // you can see"), with new QUIZ RULES that make wrong options tempting but
+  // still fair. tools/replay_compare.js reads everything from LANG_NAMES down to
+  // the `const prompt` line below, so test changes with:  --prompt prod
+  const TEXTBOOK_TERMS = {
+    bn: 'Use the standard terms from Bengali-medium school textbooks, not transliterated English (for example: কপিকল for pulley, ভগ্নাংশ for fraction, সালোকসংশ্লেষ for photosynthesis, কীলক for wedge).',
+    hi: 'Use the standard terms from Hindi-medium school textbooks, not transliterated English (for example: घिरनी for pulley, भिन्न for fraction, प्रकाश संश्लेषण for photosynthesis, उत्तोलक for lever).',
+  };
+  const V3_LIMITS = (lang === "bn" || lang === "hi")
+    ? { name: 3, desc: 12, q: 10, opt: 3 }
+    : { name: 4, desc: 18, q: 15, opt: 5 };
+
+  const PROMPT_V3 = `Identify the educational concept in this camera frame. A concept counts when the main subject of the picture is clearly visible and is something taught or studied in school or college, in ANY subject:
+- science and maths: lever, pulley, magnet, circuit, cell, leaf, fraction bar, equation, polygon
+- computing: program code, flowcharts, and computer hardware such as a keyboard or a scanner
+- how everyday objects work: scissors, a lock, a tap, a zipper, a clock, a coin
+- languages and literature: a word puzzle, a poem, a page of text in a textbook
+- history, civics and geography: a map, a flag, a monument, a national day, the freedom struggle
+- art, culture and traditions: a festival or idol (for example a Ganesh idol), a handicraft or sculpture (for example a clay pot), a musical instrument (for example a flute or tabla)
+
+Name only what you can actually see, and name it specifically. Do not stretch an object into a loosely related concept it is not an example of. A person, hand, face, street, vehicle, empty room or clutter on its own is not a concept; a recognisable cultural, historical or art object is. If nothing qualifies, answer "none".
+
+${langInstruction}
+Write ONLY in the requested language and script. Do not mix in words or characters from any other language (only "concept" and "subject" and "related_topics" stay in English).${TEXTBOOK_TERMS[lang] ? "\n" + TEXTBOOK_TERMS[lang] : ""}
+
+Reply with ONLY this JSON object - no markdown, no preamble:
+{"concept":"lowercase english key","display_name":"friendly name","description":"...","confidence":0.9,"subject":"Physics / Biology / Mathematics / Computer Science / Language / History / Civics / Geography / Art & Culture / etc","related_topics":["a","b","c"],"has_educational_content":true,"quiz_question":{"question":"...","options":["A","B","C"],"answer_index":0}}
+
+CONCEPT KEY: the general, standard English name, singular, lowercase, underscores for spaces (lever, pulley, magnet, fraction_bar, zipper, tabla, bar_graph). No suffixes such as _diagram, no "simple_machine_" prefix.
+
+LENGTH LIMITS - hard limits, count the words:
+- display_name: ${V3_LIMITS.name} words maximum
+- description: ONE short sentence, ${V3_LIMITS.desc} words maximum
+- question: ${V3_LIMITS.q} words maximum
+- each option: ${V3_LIMITS.opt} words maximum, all three similar in length
+- related_topics: exactly 3, one or two English words each
+
+QUIZ RULES:
+- Test general knowledge of the concept (its purpose, how it works, a key fact). Do NOT ask about details you would have to read off the picture, such as a value, colour, brand or count.
+- Exactly ONE option is correct and must be factually accurate. The other two must be wrong, but tempting to a student who has only half understood the concept. Build each wrong option from one of these:
+  a) a common misconception about this concept;
+  b) a closely related term, part, step or quantity from the same topic (for example the neighbouring part of a lever, the opposite direction, the next stage of a process);
+  c) a true fact that answers a different question.
+- All three options must be the same kind of thing (all gases, all parts, all directions, all causes) and about the same length. The correct option must not be the longest, the most detailed, or the only specific one.
+- Never use absurd or unrelated options (food, animals, feelings, daily chores) and never use a joke option.
+- Be fair: a student who understands the concept must find the correct option clearly right and each wrong option clearly wrong. No trick wording, no negatives ("which is NOT"), no "all of the above" or "none of these", no options that overlap or are partly correct, and no question that depends on a debatable fact.
+- answer_index is 0-based; vary which position is correct.
+
+If no concept qualifies: concept "none", has_educational_content false, confidence below 0.4, display_name "None", description "", subject "General", related_topics [], quiz_question null.`;
+
+  const prompt = process.env.PROMPT_VERSION === "v1" ? PROMPT_V1
+               : process.env.PROMPT_VERSION === "v2" ? PROMPT_V2
+               : PROMPT_V3;
+  // Recorded with every scan so pilot data says which prompt produced it.
+  const promptVersion = process.env.PROMPT_VERSION === "v1" ? "v1"
+                      : process.env.PROMPT_VERSION === "v2" ? "v2"
+                      : "v3";
 
   const tStart = Date.now();
   try {
-    const message = await client.messages.create({
-      // model:      "claude-sonnet-5",  // original - restore after Haiku 4.5 feasibility test
-      model:      "claude-haiku-4-5-20251001",  // Haiku 4.5 feasibility test (Oct 2026)
+    const params = {
+      model:      MODEL,   // see "Model" at the top of this file
       max_tokens: 800,
       messages: [
         {
@@ -185,12 +259,21 @@ If there is no clear educational content (blank wall, random clutter, a person's
           ],
         },
       ],
-    });
+    };
+    // Haiku 5.5 only: no thinking, low effort (the reason is at MODEL above).
+    // Skipped for any other model, so the Sonnet 5 fallback sends what it always did.
+    if (MODEL.startsWith("claude-haiku-5")) {
+      params.thinking      = { type: "disabled" };
+      params.output_config = { effort: "low" };
+    }
+    const message = await client.messages.create(params);
 
-    // ── Latency measurement (Haiku 4.5 feasibility test) ───────────────────
+    // ── Latency measurement ─────────────────────────────────────────────────
     // aiMs = time spent in the Anthropic call only (the number the 3s budget
     // applies to). Cold starts add extra time to the first request after idle,
     // so judge on the median of several warm scans, not on a single reading.
+    // aiMs, the model and token counts are also saved on the scan's Neon row
+    // (below), so pilot data outlives the ~3 days Vercel keeps logs.
     const aiMs = Date.now() - tStart;
     const LATENCY_BUDGET_MS = 3000;
     const raw   = message.content.map((b) => b.text || "").join("").trim();
@@ -240,7 +323,14 @@ If there is no clear educational content (blank wall, random clutter, a person's
     // turns into a failed scan for the child.
     const scanId = scan_id || crypto.randomUUID();
     try {
-      await logScan({ scanId, lang, imageBase64, mediaType, parsed });
+      await logScan({
+        scanId, lang, imageBase64, mediaType, parsed,
+        model:         message.model || MODEL,   // the model the API says it used
+        promptVersion,
+        aiMs,
+        inTokens:      message.usage && message.usage.input_tokens,
+        outTokens:     message.usage && message.usage.output_tokens,
+      });
     } catch (e) {
       console.error("SCAN_LOG_FAILED", e.message);
     }
@@ -249,6 +339,7 @@ If there is no clear educational content (blank wall, random clutter, a person's
     const totalMs = Date.now() - tStart;
     const latencyInfo = {
       model:      message.model,
+      prompt:     promptVersion,
       lang,
       ai_ms:      aiMs,
       total_ms:   totalMs,

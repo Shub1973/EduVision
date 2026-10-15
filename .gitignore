@@ -5,3 +5,9 @@ eduvision/node_modules/
 R2 Values.txt
 *.env
 .env*
+eduvision/tools/replay_compare.js
+eduvision/tools/replay_results/
+eduvision/api/analyze.js.bak_sonnet5
+eduvision/tools/SnapShots/
+scans_Oct.csv
+eduvision/CurioX_Pending_Code_Changes.pdf

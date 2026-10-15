@@ -16,7 +16,15 @@
 const { getSql } = require("./db");
 const { putScanImage } = require("./storage");
 
-async function logScan({ scanId, lang, imageBase64, mediaType, parsed }) {
+// Postgres error 42703 = "column does not exist". The new model/latency columns
+// are added by the migration in neon_scans_schema.sql; until that has been run
+// on the database, fall back to the original insert so no scan row is lost.
+function isMissingColumn(e) {
+  return !!e && (e.code === "42703" || /column .* does not exist/i.test(String(e.message || "")));
+}
+const intOrNull = (n) => (Number.isFinite(n) ? Math.round(n) : null);
+
+async function logScan({ scanId, lang, imageBase64, mediaType, parsed, model, promptVersion, aiMs, inTokens, outTokens }) {
   const sql = getSql();
   if (!sql) return; // DATABASE_URL not set yet — no-op by design
 
@@ -28,20 +36,37 @@ async function logScan({ scanId, lang, imageBase64, mediaType, parsed }) {
   // row honest about it (image_key null) rather than pointing at nothing.
   const stored = await putScanImage(imageKey, imageBase64, mediaType);
 
-  await sql`
-    INSERT INTO scans (
-      id, lang, concept, confidence, subject, has_educational_content, image_key
-    ) VALUES (
-      ${scanId},
-      ${lang || null},
-      ${parsed.concept || null},
-      ${typeof parsed.confidence === "number" ? parsed.confidence : null},
-      ${parsed.subject || null},
-      ${!!parsed.has_educational_content},
-      ${stored ? imageKey : null}
-    )
-    ON CONFLICT (id) DO NOTHING
-  `;
+  const concept    = parsed.concept || null;
+  const confidence = typeof parsed.confidence === "number" ? parsed.confidence : null;
+  const subject    = parsed.subject || null;
+  const hasContent = !!parsed.has_educational_content;
+  const key        = stored ? imageKey : null;
+
+  try {
+    // model, prompt_version, ai_ms (time in the Anthropic call), in_tokens and
+    // out_tokens are what let the pilot report real speed and cost per scan.
+    await sql`
+      INSERT INTO scans (
+        id, lang, concept, confidence, subject, has_educational_content, image_key,
+        model, prompt_version, ai_ms, in_tokens, out_tokens
+      ) VALUES (
+        ${scanId}, ${lang || null}, ${concept}, ${confidence}, ${subject}, ${hasContent}, ${key},
+        ${model || null}, ${promptVersion || null}, ${intOrNull(aiMs)}, ${intOrNull(inTokens)}, ${intOrNull(outTokens)}
+      )
+      ON CONFLICT (id) DO NOTHING
+    `;
+  } catch (e) {
+    if (!isMissingColumn(e)) throw e;
+    console.warn("SCAN_LOG_LEGACY_SCHEMA run the model/latency migration in neon_scans_schema.sql; saving the row without those columns");
+    await sql`
+      INSERT INTO scans (
+        id, lang, concept, confidence, subject, has_educational_content, image_key
+      ) VALUES (
+        ${scanId}, ${lang || null}, ${concept}, ${confidence}, ${subject}, ${hasContent}, ${key}
+      )
+      ON CONFLICT (id) DO NOTHING
+    `;
+  }
 }
 
 // hit = true  → DIKSHA returned relevant videos
