@@ -182,18 +182,34 @@ QUIZ RULES:
 
 If there is no clear educational content (blank wall, random clutter, a person's face): set has_educational_content false, confidence below 0.4, and quiz_question null.`;
 
-  // ─── Prompt V3 ────────────────────────────────────────────────────────────
-  // This is the "v3.2" prompt from the 15 Oct 2026 replay (broad range of
-  // subjects, short Hindi/Bengali output, stable concept keys, "name only what
-  // you can see"), with new QUIZ RULES that make wrong options tempting but
-  // still fair. tools/replay_compare.js reads everything from LANG_NAMES down to
-  // the `const prompt` line below, so test changes with:  --prompt prod
+  // ─── Prompt V3 (v3.4, live from 21 Oct 2026) ───────────────────────────────
+  // v3.4 = the 15 Oct v3 prompt plus the fixes from the Bengali internal review
+  // (21 Oct 2026): a guarded Bengali culture glossary (dhak vs dhol, Bankura
+  // horse etc.), more Bengali textbook terms, textbook-exact descriptions
+  // (lever, screw), self-contained quiz questions, same-tradition distractors
+  // for culture items, exactly three options, and a 15-word Bengali/Hindi
+  // description limit (was 12). Replay on the 35 Bengali photos: both drums
+  // named dhak, 0-1/35 over 3 s, about $0.00037 per scan.
+  // Previous version: api/analyze.js.bak_v3 (gitignored) and git history.
+  // tools/replay_compare.js reads everything from LANG_NAMES down to the
+  // `const prompt` line below, so test changes with:  --prompt prod
   const TEXTBOOK_TERMS = {
-    bn: 'Use the standard terms from Bengali-medium school textbooks, not transliterated English (for example: কপিকল for pulley, ভগ্নাংশ for fraction, সালোকসংশ্লেষ for photosynthesis, কীলক for wedge).',
+    bn: 'Use Bengali-medium textbook terms, not transliterated English: কপিকল (pulley), ভগ্নাংশ (fraction), সালোকসংশ্লেষ (photosynthesis), কীলক (wedge), হেলানো তল (inclined plane), তালবাদ্য (percussion), বিক্রিয়ক (reactant), উৎপাদ (product), যান্ত্রিক সুবিধা (mechanical advantage), স্ক্রু (screw).',
     hi: 'Use the standard terms from Hindi-medium school textbooks, not transliterated English (for example: घिरनी for pulley, भिन्न for fraction, प्रकाश संश्लेषण for photosynthesis, उत्तोलक for lever).',
   };
+
+  const BN_GLOSSARY = `
+BENGALI NAMES: use one only when the object clearly matches its description; these are not hints about what is in the picture.
+- Drums: ঢাক (dhak) = big long barrel drum hung at the waist, two thin sticks, Durga Puja; ঢোল = smaller, rope-tightened, played by hand; খোল = clay kirtan drum, narrow ends; মাদল = folk drum.
+- Other instruments: একতারা = one-string Baul instrument.
+- Puja items: ধুনুচি = clay incense burner; শঙ্খ = conch; শাঁখা = conch-shell bangles; আলপনা = rice-paste floor art; ডাকের সাজ = silver-foil idol decoration; শোলার কাজ = white pith craft. Name an idol's goddess from her signs (দুর্গা, কালী, সরস্বতী, লক্ষ্মী).
+- Crafts: বাঁকুড়ার ঘোড়া = terracotta horse; বিষ্ণুপুরের টেরাকোটা = terracotta temple panels; কালীঘাটের পট, পটচিত্র = folk paintings; কাঁথা = embroidered quilt.
+- Nature: কাশফুল = white kans grass flowers; চালতা, বেল = Bengal fruits.
+- Places: হাওড়া ব্রিজ, ভিক্টোরিয়া মেমোরিয়াল, শহীদ মিনার.
+- People (রবীন্দ্রনাথ, বিদ্যাসাগর, নেতাজী, নজরুল): only if a caption or name plate says so; never from a face.`;
+
   const V3_LIMITS = (lang === "bn" || lang === "hi")
-    ? { name: 3, desc: 12, q: 10, opt: 3 }
+    ? { name: 3, desc: 15, q: 10, opt: 3 }
     : { name: 4, desc: 18, q: 15, opt: 5 };
 
   const PROMPT_V3 = `Identify the educational concept in this camera frame. A concept counts when the main subject of the picture is clearly visible and is something taught or studied in school or college, in ANY subject:
@@ -202,34 +218,30 @@ If there is no clear educational content (blank wall, random clutter, a person's
 - how everyday objects work: scissors, a lock, a tap, a zipper, a clock, a coin
 - languages and literature: a word puzzle, a poem, a page of text in a textbook
 - history, civics and geography: a map, a flag, a monument, a national day, the freedom struggle
-- art, culture and traditions: a festival or idol (for example a Ganesh idol), a handicraft or sculpture (for example a clay pot), a musical instrument (for example a flute or tabla)
+- art, culture and traditions: a festival or idol, a handicraft or sculpture, a musical instrument
 
 Name only what you can actually see, and name it specifically. Do not stretch an object into a loosely related concept it is not an example of. A person, hand, face, street, vehicle, empty room or clutter on its own is not a concept; a recognisable cultural, historical or art object is. If nothing qualifies, answer "none".
 
 ${langInstruction}
-Write ONLY in the requested language and script. Do not mix in words or characters from any other language (only "concept" and "subject" and "related_topics" stay in English).${TEXTBOOK_TERMS[lang] ? "\n" + TEXTBOOK_TERMS[lang] : ""}
+Write ONLY in the requested language and script. Do not mix in words or characters from any other language (only "concept" and "subject" and "related_topics" stay in English).${TEXTBOOK_TERMS[lang] ? "\n" + TEXTBOOK_TERMS[lang] : ""}${lang === "bn" ? "\n" + BN_GLOSSARY : ""}
 
 Reply with ONLY this JSON object - no markdown, no preamble:
 {"concept":"lowercase english key","display_name":"friendly name","description":"...","confidence":0.9,"subject":"Physics / Biology / Mathematics / Computer Science / Language / History / Civics / Geography / Art & Culture / etc","related_topics":["a","b","c"],"has_educational_content":true,"quiz_question":{"question":"...","options":["A","B","C"],"answer_index":0}}
 
-CONCEPT KEY: the general, standard English name, singular, lowercase, underscores for spaces (lever, pulley, magnet, fraction_bar, zipper, tabla, bar_graph). No suffixes such as _diagram, no "simple_machine_" prefix.
+CONCEPT KEY: the general, standard English name, singular, lowercase, underscores for spaces (lever, pulley, magnet, fraction_bar, zipper, tabla, dhak, bar_graph). No suffixes such as _diagram, no "simple_machine_" prefix.
 
 LENGTH LIMITS - hard limits, count the words:
 - display_name: ${V3_LIMITS.name} words maximum
-- description: ONE short sentence, ${V3_LIMITS.desc} words maximum
+- description: ONE short sentence, ${V3_LIMITS.desc} words maximum, stating what it is or does exactly as a textbook would (a lever lets a small effort move a heavy load; a screw is an inclined plane in rolled-up form)
 - question: ${V3_LIMITS.q} words maximum
-- each option: ${V3_LIMITS.opt} words maximum, all three similar in length
+- options: exactly THREE, each ${V3_LIMITS.opt} words maximum, all similar in length
 - related_topics: exactly 3, one or two English words each
 
 QUIZ RULES:
-- Test general knowledge of the concept (its purpose, how it works, a key fact). Do NOT ask about details you would have to read off the picture, such as a value, colour, brand or count.
-- Exactly ONE option is correct and must be factually accurate. The other two must be wrong, but tempting to a student who has only half understood the concept. Build each wrong option from one of these:
-  a) a common misconception about this concept;
-  b) a closely related term, part, step or quantity from the same topic (for example the neighbouring part of a lever, the opposite direction, the next stage of a process);
-  c) a true fact that answers a different question.
-- All three options must be the same kind of thing (all gases, all parts, all directions, all causes) and about the same length. The correct option must not be the longest, the most detailed, or the only specific one.
-- Never use absurd or unrelated options (food, animals, feelings, daily chores) and never use a joke option.
-- Be fair: a student who understands the concept must find the correct option clearly right and each wrong option clearly wrong. No trick wording, no negatives ("which is NOT"), no "all of the above" or "none of these", no options that overlap or are partly correct, and no question that depends on a debatable fact.
+- Ask about a key fact the description states, not something read off the picture (value, colour, brand, count). The question must name the exact situation (for example "outside the magnet") so only one option can be right.
+- Exactly ONE option is correct. Each wrong option must be tempting to a student who half understands: a common misconception, or a closely related term, part, step or direction from the same topic. All three options must be the same kind of thing, and the correct one must not be the longest or most detailed.
+- A child who does not know the answer must not be able to rule out a wrong option by common sense alone. For culture items, take the wrong options from the same tradition (other Bengali instruments, other pujas or crafts); never use another religion's festival.
+- Be fair: no trick wording, no "which is NOT", no "all of the above", no partly correct or overlapping options, no debatable facts, no absurd or joke options.
 - answer_index is 0-based; vary which position is correct.
 
 If no concept qualifies: concept "none", has_educational_content false, confidence below 0.4, display_name "None", description "", subject "General", related_topics [], quiz_question null.`;
@@ -240,7 +252,7 @@ If no concept qualifies: concept "none", has_educational_content false, confiden
   // Recorded with every scan so pilot data says which prompt produced it.
   const promptVersion = process.env.PROMPT_VERSION === "v1" ? "v1"
                       : process.env.PROMPT_VERSION === "v2" ? "v2"
-                      : "v3";
+                      : "v3.4";
 
   const tStart = Date.now();
   try {
