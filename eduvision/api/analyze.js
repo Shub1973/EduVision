@@ -6,6 +6,7 @@
 const Anthropic = require("@anthropic-ai/sdk");
 const crypto = require("crypto");
 const { logScan } = require("./_lib/scanLogger");
+const { checkQuizFaith } = require("./_lib/quizGuard");
 
 // ─── Model ────────────────────────────────────────────────────────────────────
 // Chosen 15 Oct 2026 from a 35-photo replay: Haiku 5.5 answered in a median of
@@ -301,6 +302,16 @@ If no concept qualifies: concept "none", has_educational_content false, confiden
 
     if (!parsed) {
       return res.status(502).json({ error: "Could not parse AI response" });
+    }
+
+    // ── Quiz guard: no other faith's festival as a wrong option ──────────────
+    // The prompt forbids it, but the model still offered "Eid / Christmas" as
+    // wrong options in a dhak quiz now and then. Such a quiz is dropped (null),
+    // which the app shows as "no quiz". Rules are in api/_lib/quizGuard.js.
+    const quizCheck = checkQuizFaith(parsed);
+    if (quizCheck.drop) {
+      console.log(`QUIZ_DROPPED concept=${parsed.concept} lang=${lang} reason=${quizCheck.reason}`);
+      parsed.quiz_question = null;
     }
 
     // ── Force-shuffle quiz options ──────────────────────────────────────────
