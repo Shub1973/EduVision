@@ -82,4 +82,25 @@ async function logDikshaResult(scanId, hit) {
   `;
 }
 
-module.exports = { logScan, logDikshaResult };
+// Backlog C1 (3 Nov 2026): record whether YouTube found a video for this scan.
+// hit = true  → YouTube returned videos (or a cached result)
+// hit = false → YouTube returned nothing or failed. If diksha_hit is not TRUE
+//               as well, the child saw no video at all (a "blank video").
+// The two columns come from the C1 migration in neon_scans_schema.sql; until it
+// has been run this logs a warning and skips, so nothing else is affected.
+async function logYoutubeResult(scanId, hit) {
+  const sql = getSql();
+  if (!sql || !scanId) return;
+  try {
+    await sql`
+      UPDATE scans
+      SET youtube_hit = ${hit}, youtube_checked_at = now()
+      WHERE id = ${scanId}
+    `;
+  } catch (e) {
+    if (!isMissingColumn(e)) throw e;
+    console.warn("YOUTUBE_LOG_SKIPPED run the C1 migration in neon_scans_schema.sql (youtube_hit, youtube_checked_at)");
+  }
+}
+
+module.exports = { logScan, logDikshaResult, logYoutubeResult };

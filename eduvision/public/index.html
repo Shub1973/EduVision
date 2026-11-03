@@ -552,7 +552,7 @@ async function loadVideos(topic, autoplay = false, scanId = null) {
 
     // 2 · YouTube fallback (and the default path for en/hi)
     if (!videos) {
-      const res = await fetch(`/api/youtube?topic=${encodeURIComponent(topic)}&subject=${encodeURIComponent(currentSubject||'')}&lang=${currentLang}`);
+      const res = await fetch(`/api/youtube?topic=${encodeURIComponent(topic)}&subject=${encodeURIComponent(currentSubject||'')}&lang=${currentLang}&scan_id=${encodeURIComponent(scanId||'')}`);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || _t('ytFailed'));

@@ -40,3 +40,10 @@ CREATE INDEX IF NOT EXISTS idx_scans_lang       ON scans (lang);
 --          percentile_cont(0.95) WITHIN GROUP (ORDER BY ai_ms)       AS p95_ms,
 --          count(*) FILTER (WHERE ai_ms > 3000)                      AS over_3s
 --   FROM scans WHERE ai_ms IS NOT NULL GROUP BY model;
+
+-- Backlog C1 (3 Nov 2026): blank-video logging. youtube_hit is set by api/youtube.js:
+-- TRUE = YouTube found a video, FALSE = it found none or failed, NULL = YouTube was not
+-- needed (DIKSHA found one) or the scan predates this. Safe to run more than once.
+ALTER TABLE scans
+  ADD COLUMN IF NOT EXISTS youtube_hit        BOOLEAN,
+  ADD COLUMN IF NOT EXISTS youtube_checked_at TIMESTAMPTZ;

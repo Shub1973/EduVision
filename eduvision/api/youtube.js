@@ -14,6 +14,20 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
+// ─── Blank-video logging (backlog C1, 3 Nov 2026) ─────────────────────────────
+// Records on the scan's Neon row whether YouTube found a video. Wrapped so a
+// logging failure never turns into a failed video lookup for the child.
+const { logYoutubeResult } = require("./_lib/scanLogger");
+async function safeLogYoutube(scanId, hit, lang, topic) {
+  if (!hit) console.warn(`YOUTUBE_NO_VIDEO lang=${lang} topic=${String(topic).slice(0, 60)}`);
+  if (!scanId) return;
+  try {
+    await logYoutubeResult(scanId, hit);
+  } catch (e) {
+    console.error("YOUTUBE_LOG_FAILED", e.message);
+  }
+}
+
 // ─── Search query builder ─────────────────────────────────────────────────────
 // Builds the best YouTube search query for a given topic, subject and language
 function buildQuery(topic, subject, lang) {
@@ -43,7 +57,7 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { topic, subject = "", lang = "en" } = req.query;
+  const { topic, subject = "", lang = "en", scan_id } = req.query;
 
   if (!topic) {
     return res.status(400).json({ error: "Missing topic parameter" });
@@ -53,11 +67,13 @@ module.exports = async function handler(req, res) {
   const cacheKey = `${topic.toLowerCase()}__${subject.toLowerCase()}__${lang}`;
   const cached = cache.get(cacheKey);
   if (cached && Date.now() - cached.cachedAt < CACHE_TTL) {
+    await safeLogYoutube(scan_id, true, lang, topic);
     return res.status(200).json({ videos: cached.videos, source: "cache" });
   }
 
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) {
+    await safeLogYoutube(scan_id, false, lang, topic);
     return res.status(500).json({ error: "YouTube API key not configured on server." });
   }
 
@@ -92,6 +108,7 @@ module.exports = async function handler(req, res) {
     const data = await ytRes.json();
 
     if (!data.items || data.items.length === 0) {
+      await safeLogYoutube(scan_id, false, lang, topic);
       return res.status(404).json({ error: "No videos found for this topic." });
     }
 
@@ -105,11 +122,13 @@ module.exports = async function handler(req, res) {
 
     // Store in cache
     cache.set(cacheKey, { videos, cachedAt: Date.now() });
+    await safeLogYoutube(scan_id, true, lang, topic);
 
     return res.status(200).json({ videos, source: "api" });
 
   } catch (err) {
     console.error("YouTube API error:", err.message);
+    await safeLogYoutube(scan_id, false, lang, topic);
     return res.status(500).json({ error: "YouTube search failed: " + err.message });
   }
 };
