@@ -7,12 +7,11 @@ R2 Values.txt
 .env*
 eduvision/tools/replay_compare.js
 eduvision/tools/replay_results/
-eduvision/api/analyze.js.bak_sonnet5
 eduvision/tools/SnapShots/
 scans_Oct.csv
 eduvision/CurioX_Pending_Code_Changes.pdf
-eduvision/api/analyze.js.bak_v3
 eduvision/tools/replay_compare.js.bak_v32
 eduvision/tools/prompt_v34.js
 eduvision/tools/prompt_v35.js
 eduvision/api/analyze.js.bak_v34
+eduvision/tools/prompt_v341.js

@@ -194,6 +194,8 @@ If there is no clear educational content (blank wall, random clutter, a person's
   // Previous version: api/analyze.js.bak_v3 (gitignored) and git history.
   // tools/replay_compare.js reads everything from LANG_NAMES down to the
   // `const prompt` line below, so test changes with:  --prompt prod
+  // v3.4.1 (3 Nov 2026): storage media (a CD, a pen drive) added to the computing
+  // examples. Before this a CD was recognised only in Bengali (backlog B1).
   const TEXTBOOK_TERMS = {
     bn: 'Use Bengali-medium textbook terms, not transliterated English: কপিকল (pulley), ভগ্নাংশ (fraction), সালোকসংশ্লেষ (photosynthesis), কীলক (wedge), হেলানো তল (inclined plane), তালবাদ্য (percussion), বিক্রিয়ক (reactant), উৎপাদ (product), যান্ত্রিক সুবিধা (mechanical advantage), স্ক্রু (screw).',
     hi: 'Use the standard terms from Hindi-medium school textbooks, not transliterated English (for example: घिरनी for pulley, भिन्न for fraction, प्रकाश संश्लेषण for photosynthesis, उत्तोलक for lever).',
@@ -215,7 +217,7 @@ BENGALI NAMES: use one only when the object clearly matches its description; the
 
   const PROMPT_V3 = `Identify the educational concept in this camera frame. A concept counts when the main subject of the picture is clearly visible and is something taught or studied in school or college, in ANY subject:
 - science and maths: lever, pulley, magnet, circuit, cell, leaf, fraction bar, equation, polygon
-- computing: program code, flowcharts, and computer hardware such as a keyboard or a scanner
+- computing: program code, flowcharts, and computer hardware and storage such as a keyboard, a scanner, a CD or a pen drive
 - how everyday objects work: scissors, a lock, a tap, a zipper, a clock, a coin
 - languages and literature: a word puzzle, a poem, a page of text in a textbook
 - history, civics and geography: a map, a flag, a monument, a national day, the freedom struggle
@@ -253,7 +255,7 @@ If no concept qualifies: concept "none", has_educational_content false, confiden
   // Recorded with every scan so pilot data says which prompt produced it.
   const promptVersion = process.env.PROMPT_VERSION === "v1" ? "v1"
                       : process.env.PROMPT_VERSION === "v2" ? "v2"
-                      : "v3.4";
+                      : "v3.4.1";
 
   const tStart = Date.now();
   try {

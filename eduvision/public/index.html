@@ -327,6 +327,7 @@ const i18n = {
     snapBtn:             '📸 Snap',
     idleText:            'Point camera at\nan educational object\nand tap Snap',
     scanningText:        'Analyzing with AI…',
+    stillThinking:       'Still thinking… almost there!',
     videoLabel:          'Now Playing',
     altRowLabel:         'More on this topic',
     camOffLabel:         'Camera paused',
@@ -358,6 +359,7 @@ const i18n = {
     snapBtn:             '📸 स्नैप',
     idleText:            'कैमरा किसी शैक्षिक\nवस्तु पर लगाएं\nऔर स्नैप दबाएं',
     scanningText:        'AI से विश्लेषण हो रहा है…',
+    stillThinking:       'अभी सोच रहा है… बस एक पल!',
     videoLabel:          'अभी चल रहा है',
     altRowLabel:         'इस विषय पर और वीडियो',
     camOffLabel:         'कैमरा रुका हुआ है',
@@ -389,6 +391,7 @@ const i18n = {
     snapBtn:             '📸 স্ন্যাপ',
     idleText:            'ক্যামেরা কোনো শিক্ষামূলক\nবস্তুর দিকে ধরুন\nএবং স্ন্যাপ চাপুন',
     scanningText:        'AI দিয়ে বিশ্লেষণ হচ্ছে…',
+    stillThinking:       'এখনও ভাবছে… আর এক মুহূর্ত!',
     videoLabel:          'এখন চলছে',
     altRowLabel:         'এই বিষয়ে আরও ভিডিও',
     camOffLabel:         'ক্যামেরা বন্ধ আছে',
@@ -458,6 +461,13 @@ function setLang(lang) {
       loadVideos(currentVideoSet, false);
       toast(lang === 'hi' ? _t('toastHindi') : lang === 'bn' ? _t('toastBengali') : _t('toastEnglish'));
     }
+  }
+  // B2 fix: re-label the quiz button in the new language, or hide it if
+  // the current result has no quiz (e.g. "not recognised")
+  const qWrap = document.getElementById('quiz-trigger-wrap');
+  if (qWrap && qWrap.style.display !== 'none') {
+    if (lastConcept && lastConcept !== '__not_recognized__' && window._lastScanData) showQuizTrigger(window._lastScanData);
+    else hideQuizTrigger();
   }
   // Re-render gamification strip in new language
   gamRender();
@@ -638,6 +648,7 @@ function stopCamera() {
 async function resumeCamera() {
   lastConcept = '';
   hideQuiz();
+  hideQuizTrigger();
   document.getElementById('idle-hint').style.display = 'flex';
   document.getElementById('result-card').style.display = 'none';
   document.getElementById('yt-iframe').src = '';
@@ -655,6 +666,8 @@ async function switchCamera() {
 async function captureNow() {
   if (analyzing) return;
   window._lastScanData = null; // clear previous scan data when new scan starts
+  hideQuizTrigger();            // B2 fix: the previous result's quiz button must not survive a new scan
+  hideQuiz();
   const vid = document.getElementById('video-feed');
   if (!vid.videoWidth) return;
   const flash = document.getElementById('flash');
@@ -711,13 +724,14 @@ async function analyzeFrame(base64) {
   document.getElementById('yt-iframe').src='https://www.youtube.com/embed/Mu1jTUjMit4?autoplay=1&rel=0&modestbranding=1';
   // set lastConcept so setScanning(false) in finally block does NOT hide the result-card
   lastConcept = '__not_recognized__';
+  hideQuizTrigger();   // B2 fix: no quiz for a not-recognised result
   stopCamera();
 } else {
       const concept=(parsed.concept||'').toLowerCase();
       vf.classList.remove('locked'); vf.classList.add('found');
       setTimeout(()=>{ vf.classList.remove('found'); }, 1800);
       if(concept!==lastConcept){lastConcept=concept;showResult(parsed);}
-      else toast(_t('toastSameConcept'));
+      else toast(_t('toastSameConcept'));   // same concept again: no repeat quiz (avoids XP farming)
       stopCamera();
     }
   } catch(err){
@@ -726,7 +740,20 @@ async function analyzeFrame(base64) {
   } finally { setScanning(false); analyzing=false; }
 }
 
+// "Still thinking" screen (Board advice, 3 Nov 2026): if the AI has not
+// answered within 3 s, the scanning message changes so a slow answer feels
+// expected rather than broken. This replaces switching to a slower, dearer
+// model as the fallback for slow scans.
+const STILL_THINKING_MS = 3000;
+let stillThinkingTimer = null;
+
 function setScanning(on){
+  const scanText = document.querySelector('#scanning-state .scanning-text');
+  clearTimeout(stillThinkingTimer);
+  if (scanText) scanText.textContent = _t('scanningText');
+  if (on && scanText) {
+    stillThinkingTimer = setTimeout(() => { scanText.textContent = _t('stillThinking'); }, STILL_THINKING_MS);
+  }
   document.getElementById('idle-hint').style.display=(!on&&!lastConcept)?'flex':'none';
   document.getElementById('scanning-state').style.display=on?'flex':'none';
   document.getElementById('result-card').style.display=(!on&&lastConcept)?'flex':'none';
@@ -960,8 +987,15 @@ window.addEventListener('message', function(e) {
   } catch(_) {}
 });
 
+function hideQuizTrigger() {
+  const wrap = document.getElementById('quiz-trigger-wrap');
+  if (wrap) wrap.style.display = 'none';
+}
+
 function showQuizTrigger(data) {
-  if (!data || !data.quiz_question) return;
+  // B2 fix: a result without a quiz (not recognised, or quiz removed by the
+  // server's quiz check) must hide any button left from the previous result.
+  if (!data || !data.quiz_question) { hideQuizTrigger(); return; }
   const wrap = document.getElementById('quiz-trigger-wrap');
   const btn  = document.getElementById('quiz-trigger-btn');
   const xp = computeXP(data.concept, data.confidence);
@@ -1083,8 +1117,9 @@ function handleQuizAnswer(selectedIndex) {
 }
 
 function hideQuiz() {
-  // Only hide the quiz QUESTIONS panel — NOT the trigger button
-  // Trigger button is hidden only when quiz starts (triggerQuiz) or new scan begins (captureNow)
+  // Only hide the quiz QUESTIONS panel — NOT the trigger button.
+  // The trigger button is hidden by hideQuizTrigger(): when the quiz starts,
+  // when a new scan begins (captureNow), and for a result with no quiz.
   document.getElementById('quiz-section').classList.remove('show');
   quizState.active = false;
 }
