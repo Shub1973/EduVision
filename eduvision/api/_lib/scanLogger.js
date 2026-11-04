@@ -24,17 +24,34 @@ function isMissingColumn(e) {
 }
 const intOrNull = (n) => (Number.isFinite(n) ? Math.round(n) : null);
 
-async function logScan({ scanId, lang, imageBase64, mediaType, parsed, model, promptVersion, aiMs, inTokens, outTokens }) {
-  const sql = getSql();
-  if (!sql) return; // DATABASE_URL not set yet — no-op by design
-
+// Speed change (3 Nov 2026): the R2 photo upload used to start only after the
+// AI had answered, adding 1.3-2.1 s to every scan. analyze.js now calls
+// startImageUpload() before the AI call, so the upload runs in parallel with
+// it; logScan() then only waits for whatever is left of the upload and writes
+// the small Neon row. An upload error no longer loses the row: it is saved
+// with image_key null.
+function startImageUpload(scanId, imageBase64, mediaType) {
+  if (!getSql()) return null; // logging not configured — same no-op as logScan
   const ext = mediaType === "image/png" ? "png" : "jpg";
   const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD, UTC
   const imageKey = `scans/${date}/${scanId}.${ext}`;
+  const done = putScanImage(imageKey, imageBase64, mediaType).catch((e) => {
+    console.error("SCAN_IMAGE_UPLOAD_FAILED", e.message);
+    return false;
+  });
+  return { imageKey, done };
+}
 
-  // Store the image first so a failed R2 write still leaves the metadata
-  // row honest about it (image_key null) rather than pointing at nothing.
-  const stored = await putScanImage(imageKey, imageBase64, mediaType);
+async function logScan({ scanId, lang, imageBase64, mediaType, parsed, model, promptVersion, aiMs, inTokens, outTokens, imageUpload }) {
+  const sql = getSql();
+  if (!sql) return; // DATABASE_URL not set yet — no-op by design
+
+  // Wait for the photo upload (normally already finished, since it started
+  // before the AI call) so the row is honest about it: image_key null if the
+  // upload failed, rather than pointing at nothing.
+  const upload = imageUpload || startImageUpload(scanId, imageBase64, mediaType);
+  const stored = upload ? await upload.done : false;
+  const imageKey = upload ? upload.imageKey : null;
 
   const concept    = parsed.concept || null;
   const confidence = typeof parsed.confidence === "number" ? parsed.confidence : null;
@@ -103,4 +120,4 @@ async function logYoutubeResult(scanId, hit) {
   }
 }
 
-module.exports = { logScan, logDikshaResult, logYoutubeResult };
+module.exports = { logScan, startImageUpload, logDikshaResult, logYoutubeResult };

@@ -5,7 +5,7 @@
 
 const Anthropic = require("@anthropic-ai/sdk");
 const crypto = require("crypto");
-const { logScan } = require("./_lib/scanLogger");
+const { logScan, startImageUpload } = require("./_lib/scanLogger");
 const { checkQuizFaith } = require("./_lib/quizGuard");
 
 // ─── Model ────────────────────────────────────────────────────────────────────
@@ -257,6 +257,12 @@ If no concept qualifies: concept "none", has_educational_content false, confiden
                       : process.env.PROMPT_VERSION === "v2" ? "v2"
                       : "v3.4.1";
 
+  // Speed change (3 Nov 2026): start saving the photo to R2 now, in parallel
+  // with the AI call, instead of after it (that added 1.3-2.1 s per scan).
+  // startImageUpload never throws; logScan below waits for it to finish.
+  const scanId = scan_id || crypto.randomUUID();
+  const imageUpload = startImageUpload(scanId, imageBase64, mediaType);
+
   const tStart = Date.now();
   try {
     const params = {
@@ -344,12 +350,12 @@ If no concept qualifies: concept "none", has_educational_content false, confiden
     // logging" section, for the design this implements. Synchronous
     // (awaited) on purpose: Vercel Node serverless functions can be frozen
     // right after the response is sent, so a fire-and-forget write here
-    // risks silently losing the row. Wrapped so a logging failure never
-    // turns into a failed scan for the child.
-    const scanId = scan_id || crypto.randomUUID();
+    // risks silently losing the row. The photo upload was started before the
+    // AI call (imageUpload), so only the Neon row is left to write here.
+    // Wrapped so a logging failure never turns into a failed scan for the child.
     try {
       await logScan({
-        scanId, lang, imageBase64, mediaType, parsed,
+        scanId, lang, imageBase64, mediaType, parsed, imageUpload,
         model:         message.model || MODEL,   // the model the API says it used
         promptVersion,
         aiMs,
