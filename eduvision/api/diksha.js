@@ -39,6 +39,19 @@ const LANG_TO_BOARD_HINT = {
   hi: ["CBSE", "NCERT"],
 };
 
+// Time budget for the whole DIKSHA lookup (16 Nov 2026). A lookup makes up to
+// four searches; each used to be allowed 8 s, so a slow DIKSHA could hold a
+// child for about 32 s, past Vercel's 30 s function limit, and the function
+// could be stopped before diksha_hit was recorded. Now every search shares one
+// budget: when it runs out the lookup stops, diksha_hit is recorded as FALSE
+// and the app falls back to YouTube. Override with DIKSHA_BUDGET_MS if needed.
+const DIKSHA_BUDGET_MS = (() => {
+  const n = parseInt(process.env.DIKSHA_BUDGET_MS, 10);
+  return Number.isFinite(n) && n >= 1000 && n <= 25000 ? n : 6000;
+})();
+// A further search is not worth starting with less time than this left.
+const DIKSHA_MIN_ATTEMPT_MS = 800;
+
 // ─── In-memory cache (6 h, same pattern as youtube.js) ───────────────────────
 const cache = new Map();
 const CACHE_TTL = 6 * 60 * 60 * 1000;
@@ -180,7 +193,7 @@ function isRelevant(item, topic, subject) {
   return false;
 }
 
-async function searchDiksha(query, medium, filtersVariant) {
+async function searchDiksha(query, medium, filtersVariant, timeoutMs) {
   // DIKSHA/Sunbird index has used both "medium" and "se_mediums" facets
   // across versions — we try the classic one first, then the "se_" variant.
   const mediumFilter =
@@ -218,7 +231,7 @@ async function searchDiksha(query, medium, filtersVariant) {
   };
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 8000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(DIKSHA_SEARCH_URL, {
       method: "POST",
@@ -229,6 +242,13 @@ async function searchDiksha(query, medium, filtersVariant) {
     if (!res.ok) throw new Error(`DIKSHA search HTTP ${res.status}`);
     const data = await res.json();
     return (data && data.result && data.result.content) || [];
+  } catch (e) {
+    if (e && e.name === "AbortError") {
+      const t = new Error(`DIKSHA search timed out after ${timeoutMs} ms`);
+      t.timedOut = true;
+      throw t;
+    }
+    throw e;
   } finally {
     clearTimeout(timer);
   }
@@ -268,11 +288,28 @@ module.exports = async function handler(req, res) {
   // item names are frequently bilingual, so an English query still matches.
   const query = subject ? `${topic} ${subject}` : topic;
 
+  // One shared time budget for every search in this lookup.
+  const startedAt = Date.now();
+  const timeLeft = () => DIKSHA_BUDGET_MS - (Date.now() - startedAt);
+  let attempts = 0;
+  let budgetSpent = false;
+  // Runs one search inside what is left of the budget. If too little time is
+  // left it does not start, and reports "nothing found" for that attempt.
+  const search = async (q, variant) => {
+    const left = timeLeft();
+    if (left < DIKSHA_MIN_ATTEMPT_MS) {
+      budgetSpent = true;
+      return [];
+    }
+    attempts++;
+    return searchDiksha(q, medium, variant, left);
+  };
+
   try {
-    let raw = await searchDiksha(query, medium, "classic");
-    if (!raw.length) raw = await searchDiksha(query, medium, "se");
+    let raw = await search(query, "classic");
+    if (!raw.length) raw = await search(query, "se");
     // Last attempt: topic alone, in case the subject narrowed it to zero.
-    if (!raw.length && subject) raw = await searchDiksha(topic, medium, "classic");
+    if (!raw.length && subject) raw = await search(topic, "classic");
 
     const hints = LANG_TO_BOARD_HINT[lang];
     let normalised = raw.map(normaliseItem).filter(Boolean);
@@ -283,7 +320,7 @@ module.exports = async function handler(req, res) {
     // query). If that happens and we haven't already tried the bare topic
     // query, retry with topic alone before giving up.
     if (!relevant.length && subject && query !== topic) {
-      const retryRaw = await searchDiksha(topic, medium, "classic");
+      const retryRaw = await search(topic, "classic");
       const retryNormalised = retryRaw.map(normaliseItem).filter(Boolean);
       const retryRelevant = retryNormalised.filter((v) => isRelevant(v, topic, subject));
       if (retryRelevant.length) {
@@ -303,6 +340,12 @@ module.exports = async function handler(req, res) {
       .slice(0, 5);
 
     if (!videos.length) {
+      if (budgetSpent) {
+        console.warn("DIKSHA_BUDGET_SPENT " + JSON.stringify({
+          scan_id: scan_id || null, lang, topic, attempts,
+          ms: Date.now() - startedAt, budget_ms: DIKSHA_BUDGET_MS,
+        }));
+      }
       // 404 signals the frontend to fall back to the YouTube path.
       await safeLogDiksha(scan_id, false);
       return res
@@ -314,7 +357,16 @@ module.exports = async function handler(req, res) {
     await safeLogDiksha(scan_id, true);
     return res.status(200).json({ videos, source: "diksha" });
   } catch (err) {
-    console.error("DIKSHA API error:", err.message);
+    if (err && err.timedOut) {
+      // Budget ran out mid-search: the child gets the YouTube fallback now
+      // instead of waiting on DIKSHA.
+      console.warn("DIKSHA_BUDGET_SPENT " + JSON.stringify({
+        scan_id: scan_id || null, lang, topic, attempts,
+        ms: Date.now() - startedAt, budget_ms: DIKSHA_BUDGET_MS,
+      }));
+    } else {
+      console.error("DIKSHA API error:", err.message);
+    }
     await safeLogDiksha(scan_id, false);
     // 502 (not 500) → frontend treats any non-ok as "fall back to YouTube".
     return res
