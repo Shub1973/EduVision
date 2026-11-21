@@ -47,3 +47,35 @@ CREATE INDEX IF NOT EXISTS idx_scans_lang       ON scans (lang);
 ALTER TABLE scans
   ADD COLUMN IF NOT EXISTS youtube_hit        BOOLEAN,
   ADD COLUMN IF NOT EXISTS youtube_checked_at TIMESTAMPTZ;
+
+-- Pilot student codes (21 Nov 2026). Safe to run more than once.
+-- Only codes are stored here; the code-to-name list stays with each school.
+CREATE TABLE IF NOT EXISTS pilot_students (
+  student_code TEXT PRIMARY KEY,                       -- e.g. AGS-023 (upper case)
+  school_code  TEXT NOT NULL,                          -- e.g. AGS
+  grade        INTEGER,                                -- 5-10
+  cohort       TEXT,                                   -- e.g. pilot1
+  active       BOOLEAN NOT NULL DEFAULT TRUE,          -- set FALSE if a child leaves the pilot
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE scans
+  ADD COLUMN IF NOT EXISTS student_code TEXT,          -- as typed (normalised); NULL outside the pilot
+  ADD COLUMN IF NOT EXISTS school_code  TEXT;          -- from pilot_students; NULL if the code is unknown
+
+CREATE INDEX IF NOT EXISTS idx_scans_student_code ON scans (student_code);
+CREATE INDEX IF NOT EXISTS idx_scans_school_code  ON scans (school_code);
+
+-- Loading codes (example; replace with the real cohort):
+--   INSERT INTO pilot_students (student_code, school_code, grade, cohort) VALUES
+--     ('AGS-001','AGS',6,'pilot1'), ('AGS-002','AGS',6,'pilot1')
+--   ON CONFLICT (student_code) DO NOTHING;
+--
+-- Weekly typo check (codes that do not match any pilot student):
+--   SELECT student_code, count(*) FROM scans
+--   WHERE student_code IS NOT NULL AND school_code IS NULL GROUP BY 1;
+--
+-- Scans per student (pilot usage report):
+--   SELECT school_code, student_code, count(*) AS scans,
+--          count(DISTINCT created_at::date) AS active_days
+--   FROM scans WHERE school_code IS NOT NULL GROUP BY 1,2 ORDER BY 1,2;

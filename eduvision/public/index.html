@@ -178,6 +178,18 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
 #scan-again-btn { padding:10px 22px; background:var(--accent); color:#000; border:none; border-radius:100px; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:0.85rem; cursor:pointer; transition:all 0.2s; box-shadow:0 0 20px rgba(0,245,160,0.3); }
 #scan-again-btn:hover { transform:scale(1.04); box-shadow:0 0 28px rgba(0,245,160,0.5); }
 #cam-error p { font-size:0.82rem; color:var(--muted); line-height:1.6; }
+/* Pilot student code (21 Nov 2026) */
+#student-chip { position:absolute; left:10px; bottom:12px; z-index:30; background:rgba(0,0,0,0.55) !important; backdrop-filter:blur(8px); display:none; align-items:center; gap:4px; font-family:'JetBrains Mono',monospace; font-size:0.7rem; font-weight:700; color:var(--text); background:var(--surface2); border:1px solid var(--border); padding:6px 10px; border-radius:100px; flex-shrink:0; white-space:nowrap; cursor:pointer; }
+#student-chip.show { display:flex; }
+#code-overlay { display:none; position:fixed; inset:0; background:rgba(5,5,8,0.85); z-index:9995; align-items:center; justify-content:center; padding:20px; backdrop-filter:blur(6px); }
+#code-overlay.show { display:flex; }
+#code-box { width:100%; max-width:340px; background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:22px 20px; display:flex; flex-direction:column; gap:12px; text-align:center; }
+#code-title { font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:1.1rem; color:var(--text); }
+#code-help { font-size:0.82rem; color:var(--muted); line-height:1.5; }
+#code-input { font-family:'JetBrains Mono',monospace; font-size:1.2rem; text-align:center; letter-spacing:0.08em; text-transform:uppercase; padding:12px; border-radius:12px; border:1.5px solid var(--border); background:var(--surface2); color:var(--text); }
+#code-error { display:none; font-size:0.78rem; color:#ff6b6b; }
+#code-save { padding:12px; background:var(--accent); color:#000; border:none; border-radius:100px; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:0.95rem; cursor:pointer; }
+#code-skip { background:none; border:none; color:var(--muted); font-size:0.8rem; cursor:pointer; text-decoration:underline; }
 </style>
 </head>
 <body>
@@ -190,6 +202,18 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
   📲 Install CurioX
 </button>
   
+<!-- Pilot student code dialog (21 Nov 2026) -->
+<div id="code-overlay">
+  <div id="code-box">
+    <div id="code-title"></div>
+    <div id="code-help"></div>
+    <input id="code-input" type="text" maxlength="16" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="AGS-023">
+    <div id="code-error"></div>
+    <button id="code-save" onclick="saveCodeDialog()"></button>
+    <button id="code-skip" onclick="closeCodeDialog()"></button>
+  </div>
+</div>
+
 <div id="app">
   <div id="camera-section">
     <video id="video-feed" autoplay playsinline muted></video>
@@ -212,6 +236,7 @@ body::after { content: ''; position: fixed; inset: 0; z-index: 9999; background:
         <button id="snap-btn" onclick="captureNow()"></button>
       </div>
     </div>
+    <div id="student-chip" onclick="openCodeDialog()" title="Student code">👤 <span id="student-chip-text"></span></div>
     <div id="flash"></div>
     <div id="cam-error"><div style="font-size:2.5rem">📷</div><p></p></div>
     <div id="cam-off-overlay">
@@ -337,6 +362,13 @@ const i18n = {
     toastFrontCam:       'Front camera',
     toastRearCam:        'Rear camera',
     toastRateLimit:      '⏱ Rate limit — slow down',
+    codeTitle:           'Enter your CurioX code',
+    codeHelp:            'Your teacher gave you a code like AGS-023.',
+    codeSave:            'Save',
+    codeSkip:            'Skip for now',
+    codeInvalid:         'Please check the code: letters, numbers and - only.',
+    codeChipEmpty:       'Add code',
+    toastCodeSaved:      '✅ Code saved: {code}',
     toastNotRecognized:  '🤔 Fun Object Not Recognized',
     toastSameConcept:    '📌 Same concept — video still playing',
     toastDetected:       '✅ {name} detected!',
@@ -369,6 +401,13 @@ const i18n = {
     toastFrontCam:       'फ्रंट कैमरा',
     toastRearCam:        'रियर कैमरा',
     toastRateLimit:      '⏱ अनुरोध सीमा पार — थोड़ा रुकें',
+    codeTitle:           'अपना CurioX कोड लिखें',
+    codeHelp:            'आपके शिक्षक ने AGS-023 जैसा कोड दिया है।',
+    codeSave:            'सेव करें',
+    codeSkip:            'अभी नहीं',
+    codeInvalid:         'कोड जाँचें: केवल अक्षर, अंक और -।',
+    codeChipEmpty:       'कोड जोड़ें',
+    toastCodeSaved:      '✅ कोड सेव हुआ: {code}',
     toastNotRecognized:  '🤔 वस्तु पहचानी नहीं गई',
     toastSameConcept:    '📌 यही विषय — वीडियो चल रहा है',
     toastDetected:       '✅ {name} पहचाना गया!',
@@ -401,6 +440,13 @@ const i18n = {
     toastFrontCam:       'সামনের ক্যামেরা',
     toastRearCam:        'পেছনের ক্যামেরা',
     toastRateLimit:      '⏱ অনুরোধের সীমা পার — একটু অপেক্ষা করুন',
+    codeTitle:           'তোমার CurioX কোড লেখো',
+    codeHelp:            'তোমার শিক্ষক AGS-023-এর মতো একটি কোড দিয়েছেন।',
+    codeSave:            'সেভ করো',
+    codeSkip:            'এখন নয়',
+    codeInvalid:         'কোডটি দেখো: শুধু অক্ষর, সংখ্যা আর -।',
+    codeChipEmpty:       'কোড দাও',
+    toastCodeSaved:      '✅ কোড সেভ হয়েছে: {code}',
     toastNotRecognized:  '🤔 বস্তুটি চেনা যায়নি',
     toastSameConcept:    '📌 একই বিষয় — ভিডিও চলছে',
     toastDetected:       '✅ {name} শনাক্ত হয়েছে!',
@@ -438,6 +484,7 @@ let currentLang = localStorage.getItem('cx_lang') || 'en';
 // LANGUAGE
 // ══════════════════════════════════════════════
 function setLang(lang) {
+  setTimeout(renderStudentChip, 0); // pilot chip label follows the language
   currentLang = lang;
   localStorage.setItem('cx_lang', lang);
   const btnEn = document.getElementById('btn-en');
@@ -624,7 +671,79 @@ function playVideoItem(v, autoplay) {
 // ══════════════════════════════════════════════
 // STARTUP
 // ══════════════════════════════════════════════
-window.addEventListener('DOMContentLoaded', () => { setLang(currentLang); startCamera(); });
+// ══════════════════════════════════════════════
+// PILOT STUDENT CODE (21 Nov 2026)
+// ══════════════════════════════════════════════
+// Pilot phones are opened once with ?pilot=1 (the app then asks for the code)
+// or with ?code=AGS-023 (code set directly, e.g. from a QR card). The code is
+// remembered on the phone and sent with every scan; only the code reaches the
+// server, never a name. Outside the pilot nothing changes: no prompt, no chip.
+// A missing code never blocks a scan.
+const STUDENT_CODE_RE = /^[A-Z0-9-]{3,16}$/;
+function lsGet(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
+function lsSet(k, v) { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch (e) {} }
+function getStudentCode() { return lsGet('cx_student'); }
+function isPilotPhone() { return lsGet('cx_pilot') === '1'; }
+
+function initStudentCode() {
+  const p = new URLSearchParams(location.search);
+  const fromUrl = (p.get('code') || '').trim().toUpperCase();
+  if (p.has('pilot') || fromUrl) lsSet('cx_pilot', '1');
+  if (fromUrl && STUDENT_CODE_RE.test(fromUrl)) lsSet('cx_student', fromUrl);
+  if (p.has('code') || p.has('pilot')) {
+    // Keep the code out of bookmarks and the home-screen shortcut.
+    p.delete('code'); p.delete('pilot');
+    const q = p.toString();
+    try { history.replaceState(null, '', location.pathname + (q ? '?' + q : '') + location.hash); } catch (e) {}
+  }
+  renderStudentChip();
+  if (isPilotPhone() && !getStudentCode()) openCodeDialog();
+}
+
+function renderStudentChip() {
+  const chip = document.getElementById('student-chip');
+  if (!chip) return;
+  const code = getStudentCode();
+  chip.classList.toggle('show', !!code || isPilotPhone());
+  document.getElementById('student-chip-text').textContent = code || _t('codeChipEmpty');
+}
+
+function openCodeDialog() {
+  document.getElementById('code-title').textContent = _t('codeTitle');
+  document.getElementById('code-help').textContent  = _t('codeHelp');
+  document.getElementById('code-save').textContent  = _t('codeSave');
+  document.getElementById('code-skip').textContent  = _t('codeSkip');
+  document.getElementById('code-error').style.display = 'none';
+  const input = document.getElementById('code-input');
+  input.value = getStudentCode();
+  document.getElementById('code-overlay').classList.add('show');
+  setTimeout(() => input.focus(), 50);
+}
+
+function closeCodeDialog() {
+  document.getElementById('code-overlay').classList.remove('show');
+  renderStudentChip();
+}
+
+function saveCodeDialog() {
+  const code = document.getElementById('code-input').value.trim().toUpperCase();
+  if (!STUDENT_CODE_RE.test(code)) {
+    const err = document.getElementById('code-error');
+    err.textContent = _t('codeInvalid');
+    err.style.display = 'block';
+    return;
+  }
+  lsSet('cx_student', code);
+  lsSet('cx_pilot', '1');
+  closeCodeDialog();
+  toast(_t('toastCodeSaved', { code }));
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('code-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') saveCodeDialog(); });
+});
+
+window.addEventListener('DOMContentLoaded', () => { setLang(currentLang); startCamera(); initStudentCode(); });
 
 async function startCamera() {
   try {
@@ -707,7 +826,7 @@ async function analyzeFrame(base64) {
   try {
     const scanId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('scan_'+Date.now()+'_'+Math.random().toString(36).slice(2));
     window._lastScanId = scanId;
-    const res = await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageBase64:base64,mediaType:'image/jpeg',lang:currentLang,scan_id:scanId})});
+    const res = await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({imageBase64:base64,mediaType:'image/jpeg',lang:currentLang,scan_id:scanId,student_code:getStudentCode()||undefined})});
     if(res.status===429){toast(_t('toastRateLimit'));return;}
     if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error||'Server error');}
     const parsed=await res.json();

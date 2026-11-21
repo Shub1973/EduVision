@@ -93,7 +93,13 @@ module.exports = async function handler(req, res) {
   }
 
   // Validate request body
-  const { imageBase64, mediaType = "image/jpeg", lang = "en", scan_id } = req.body || {};
+  const { imageBase64, mediaType = "image/jpeg", lang = "en", scan_id, student_code } = req.body || {};
+
+  // Pilot student code (added 21 Nov 2026), e.g. "AGS-023". The app asks for it
+  // once and sends it with every scan. Only the code is stored - the code-to-name
+  // list stays with the school. A missing or malformed code never blocks a scan:
+  // it is simply saved as NULL. See normalizeStudentCode() below.
+  const studentCode = normalizeStudentCode(student_code);
 
   if (!imageBase64) {
     return res.status(400).json({ error: "Missing imageBase64 field" });
@@ -356,7 +362,8 @@ If no concept qualifies: concept "none", has_educational_content false, confiden
     try {
       await logScan({
         scanId, lang, imageBase64, mediaType, parsed, imageUpload,
-        model:         message.model || MODEL,   // the model the API says it used
+        studentCode,                             // NULL outside the pilot
+        model:        message.model || MODEL,   // the model the API says it used
         promptVersion,
         aiMs,
         inTokens:      message.usage && message.usage.input_tokens,
@@ -400,6 +407,23 @@ If no concept qualifies: concept "none", has_educational_content false, confiden
     return res.status(500).json({ error: "AI analysis failed: " + err.message });
   }
 };
+
+// ─── Pilot student code ───────────────────────────────────────────────────────
+// Trims and upper-cases what the child typed ("ags-023 " -> "AGS-023"). Accepts
+// letters, digits and hyphens, 3-16 characters; anything else returns null and is
+// noted in the Vercel logs. A well-formed code that is not in pilot_students is
+// still saved (with school_code NULL) so typos can be found and fixed later:
+//   SELECT student_code, count(*) FROM scans
+//   WHERE student_code IS NOT NULL AND school_code IS NULL GROUP BY 1;
+function normalizeStudentCode(raw) {
+  if (raw === undefined || raw === null || raw === "") return null;
+  const code = String(raw).trim().toUpperCase();
+  if (!/^[A-Z0-9-]{3,16}$/.test(code)) {
+    console.warn(`STUDENT_CODE_INVALID length=${String(raw).length}`);
+    return null;
+  }
+  return code;
+}
 
 /* ─────────────────────────────────────────────────────────────────────────────
    UPGRADE: Persistent rate limiting with Vercel KV (Redis)

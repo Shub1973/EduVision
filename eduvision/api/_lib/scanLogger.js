@@ -22,6 +22,10 @@ const { putScanImage } = require("./storage");
 function isMissingColumn(e) {
   return !!e && (e.code === "42703" || /column .* does not exist/i.test(String(e.message || "")));
 }
+// Postgres error 42P01 = "relation does not exist" (pilot_students not created yet).
+function isMissingTable(e) {
+  return !!e && (e.code === "42P01" || /relation .* does not exist/i.test(String(e.message || "")));
+}
 const intOrNull = (n) => (Number.isFinite(n) ? Math.round(n) : null);
 
 // Speed change (3 Nov 2026): the R2 photo upload used to start only after the
@@ -42,7 +46,7 @@ function startImageUpload(scanId, imageBase64, mediaType) {
   return { imageKey, done };
 }
 
-async function logScan({ scanId, lang, imageBase64, mediaType, parsed, model, promptVersion, aiMs, inTokens, outTokens, imageUpload }) {
+async function logScan({ scanId, lang, imageBase64, mediaType, parsed, model, promptVersion, aiMs, inTokens, outTokens, imageUpload, studentCode }) {
   const sql = getSql();
   if (!sql) return; // DATABASE_URL not set yet — no-op by design
 
@@ -58,6 +62,31 @@ async function logScan({ scanId, lang, imageBase64, mediaType, parsed, model, pr
   const subject    = parsed.subject || null;
   const hasContent = !!parsed.has_educational_content;
   const key        = stored ? imageKey : null;
+
+  // Pilot student code (21 Nov 2026). school_code is looked up from
+  // pilot_students in the same INSERT, so there is no extra round trip. An
+  // unknown code is still saved, with school_code NULL, so typos can be traced.
+  // Until the pilot migration in neon_scans_schema.sql has been run, this falls
+  // through to the insert below and the row is saved without the code.
+  try {
+    await sql`
+      INSERT INTO scans (
+        id, lang, concept, confidence, subject, has_educational_content, image_key,
+        model, prompt_version, ai_ms, in_tokens, out_tokens,
+        student_code, school_code
+      ) VALUES (
+        ${scanId}, ${lang || null}, ${concept}, ${confidence}, ${subject}, ${hasContent}, ${key},
+        ${model || null}, ${promptVersion || null}, ${intOrNull(aiMs)}, ${intOrNull(inTokens)}, ${intOrNull(outTokens)},
+        ${studentCode || null},
+        (SELECT school_code FROM pilot_students WHERE student_code = ${studentCode || null} AND active)
+      )
+      ON CONFLICT (id) DO NOTHING
+    `;
+    return;
+  } catch (e) {
+    if (!isMissingColumn(e) && !isMissingTable(e)) throw e;
+    console.warn("SCAN_LOG_NO_PILOT_SCHEMA run the pilot migration in neon_scans_schema.sql; saving the row without student_code");
+  }
 
   try {
     // model, prompt_version, ai_ms (time in the Anthropic call), in_tokens and
